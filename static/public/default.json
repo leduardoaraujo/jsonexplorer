@@ -1,44 +1,47 @@
 {
-    "appName": "JSON Crack",
-    "author": "Aykut Saraç",
-    "launched": 2022,
-    "openSource": true,
-    "stars": 34633,
-    "upgrade": {
-      "appName": "ToDiagram",
-      "detail": "New powerful JSON editor.",
-      "website": "https://todiagram.com",
-      "brandColor": "#fe5e49",
-      "paid": true
+  "usuario": {
+    "id": 1,
+    "nome": "João Silva",
+    "email": "joao.silva@example.com",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": 123,
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "cep": "01234-567"
     },
-    "milestones": [
+    "pedidos": [
       {
-        "title": "Launch",
-        "year": 2022
+        "id_pedido": 101,
+        "data": "2025-02-18",
+        "status": "Entregue",
+        "itens": [
+          {
+            "produto": "Café",
+            "quantidade": 2,
+            "preco_unitario": 10.0
+          },
+          {
+            "produto": "Açúcar",
+            "quantidade": 1,
+            "preco_unitario": 5.5
+          }
+        ],
+        "valor_total": 25.5
       },
       {
-        "title": "10K Stars",
-        "date": 2022
-      },
-      {
-        "title": "20K Stars",
-        "date": 2023
-      },
-      {
-        "title": "30K Stars",
-        "date": 2024
-      },
-      {
-        "resizer": true, 
-        "date": 2025
+        "id_pedido": 102,
+        "data": "2025-02-17",
+        "status": "Em processamento",
+        "itens": [
+          {
+            "produto": "Leite",
+            "quantidade": 3,
+            "preco_unitario": 4.0
+          }
+        ],
+        "valor_total": 12.0
       }
-    ],
-    "social": {
-      "github": "https://github.com/AykutSarac/jsoncrack.com",
-      "twitter": "https://x.com/jsoncrack",
-      "linkedin": "https://linkedin.com/company/todiagram"
-    },
-    "images": [
-      "https://jsoncrack.com/assets/192.png"
     ]
   }
+}

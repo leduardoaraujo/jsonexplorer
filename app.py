@@ -5,11 +5,21 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 
+os.makedirs("templates", exist_ok=True)
+os.makedirs("static/css", exist_ok=True)
+os.makedirs("static/js", exist_ok=True)
+
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
-templates = Jinja2Templates(directory="templates")
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+if os.path.exists("templates"):
+    templates = Jinja2Templates(directory="templates")
+else:
+    raise Exception("Diretório 'templates' não encontrado!")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -17,8 +27,5 @@ async def read_root(request: Request):
 
 if __name__ == "__main__":
     print("\n🌎 JSON Explorer")
-    # print("Acessos:")
-    
-    # print("  http://localhost:8000")
-    # print("  http://127.0.0.1:8000\n")
+    print("Estrutura de diretórios criada/verificada")
     uvicorn.run(app, host="localhost", port=8000)

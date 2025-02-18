@@ -25,6 +25,24 @@ let svg = d3.select("#visualizer")
     .attr("width", "100%")
     .attr("height", "100%");
 
+// Adicionar padrão de grid
+svg.append("defs")
+    .append("pattern")
+    .attr("id", "grid-pattern")
+    .attr("width", 20)
+    .attr("height", 20)
+    .attr("patternUnits", "userSpaceOnUse")
+    .append("path")
+    .attr("d", "M 20 0 L 0 0 0 20")
+    .attr("class", "grid-pattern");
+
+// Adicionar grid ao background
+svg.append("rect")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("class", "grid")
+    .style("fill", "url(#grid-pattern)");
+
 let g = svg.append("g");
 let zoom = d3.zoom().on("zoom", (event) => g.attr("transform", event.transform));
 svg.call(zoom);
@@ -63,7 +81,7 @@ editor.getSession().on('change', debounce(() => {
 function updateVisualization(data, shouldAnimate = true) {
     g.selectAll("*").remove();
     measurementCache.clear();
-    
+
     const root = d3.hierarchy(transformData(data));
 
     root.descendants().forEach(d => {
@@ -128,11 +146,11 @@ function transformData(data, key = "root") {
 
 function createNodeContent(d) {
     const content = ['<div class="node-container">'];
-    
+
     if (d.data.children) {
         const isCollapsed = collapsedNodes.has(d.data.name);
         const childCount = d._children ? d._children.length : (d.children ? d.children.length : 0);
-        
+
         content.push(`
             <div class="node-header">
                 <div class="toggle-icon" onclick="toggleNode('${d.data.name}')" 
@@ -151,7 +169,7 @@ function createNodeContent(d) {
             </div>
         `);
     }
-    
+
     content.push('</div>');
     return content.join('');
 }
@@ -169,15 +187,15 @@ function getNodeWidth(d) {
         font-family: ${DEFAULT_FONT};
         font-size: ${DEFAULT_FONT_SIZE};
     `;
-    
-    temp.textContent = d.data.children ? 
-        `${d.data.name} [${d.data.children.length}]` : 
+
+    temp.textContent = d.data.children ?
+        `${d.data.name} [${d.data.children.length}]` :
         `${d.data.name}: ${d.data.value}`;
-    
+
     document.body.appendChild(temp);
     const width = Math.max(NODE_MIN_WIDTH, temp.offsetWidth + 40);
     document.body.removeChild(temp);
-    
+
     measurementCache.set(cacheKey, width);
     return width;
 }
@@ -195,25 +213,25 @@ function getNodeHeight(d) {
         font-family: ${DEFAULT_FONT};
         font-size: ${DEFAULT_FONT_SIZE};
     `;
-    
-    temp.textContent = d.data.children ? 
-        `${d.data.name} [${d.data.children.length}]` : 
+
+    temp.textContent = d.data.children ?
+        `${d.data.name} [${d.data.children.length}]` :
         `${d.data.name}: ${d.data.value}`;
-    
+
     document.body.appendChild(temp);
     const height = Math.max(NODE_BASE_HEIGHT, temp.offsetHeight + 20);
     document.body.removeChild(temp);
-    
+
     measurementCache.set(cacheKey, height);
     return height;
 }
 
 // Ações do usuário
 function toggleNode(nodeName) {
-    collapsedNodes.has(nodeName) ? 
-        collapsedNodes.delete(nodeName) : 
+    collapsedNodes.has(nodeName) ?
+        collapsedNodes.delete(nodeName) :
         collapsedNodes.set(nodeName, true);
-    
+
     updateVisualization(JSON.parse(editor.getValue()), false);
 }
 
@@ -250,7 +268,7 @@ function formatJSON() {
 // Salvando o diagrama em SVG
 function saveDiagram() {
     const content = editor.getValue();
-    
+
     if (!content.trim()) {
         alert("O diagrama está vazio. Não é possível salvar.");
         return;
@@ -259,16 +277,16 @@ function saveDiagram() {
     // Criar um clone do SVG original
     const originalSvg = svg.node();
     const clonedSvg = originalSvg.cloneNode(true);
-    
+
     // Ajustar o estilo do clone para garantir que todos os elementos sejam visíveis
     clonedSvg.style.backgroundColor = 'var(--bg-primary)';
-    
+
     // Copiar os estilos computados dos nodes
     const nodeCards = clonedSvg.querySelectorAll('.node-card');
     nodeCards.forEach(card => {
         const original = originalSvg.querySelector('.node-card');
         const computedStyle = window.getComputedStyle(original);
-        
+
         card.style.backgroundColor = computedStyle.backgroundColor;
         card.style.border = computedStyle.border;
         card.style.borderRadius = computedStyle.borderRadius;
@@ -278,14 +296,14 @@ function saveDiagram() {
     // Converter para string e fazer o download
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(clonedSvg);
-    
+
     // Adicionar namespaces necessários
     const svgBlob = new Blob([
         `<?xml version="1.0" standalone="no"?>`,
         `<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`,
         svgString
     ], { type: "image/svg+xml" });
-    
+
     const url = URL.createObjectURL(svgBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -295,7 +313,7 @@ function saveDiagram() {
 }
 
 function clearEditor() {
-    const content = editor.getValue(); 
+    const content = editor.getValue();
     if (!content.trim()) {
         alert("Editor está vazio. Por favor, insira um conteúdo JSON.");
         return;
@@ -361,7 +379,7 @@ function zoomIn() {
 function zoomOut() {
     svg.transition()
         .duration(ZOOM_DURATION)
-        .call(zoom.scaleBy, 1/ZOOM_SCALE)
+        .call(zoom.scaleBy, 1 / ZOOM_SCALE)
         .on("end", () => updateZoomLevel(currentZoom / ZOOM_SCALE));
 }
 
@@ -419,7 +437,7 @@ function searchDiagram() {
     let matchCount = 0;
     let firstMatch = null;
 
-    nodes.each(function(d) {
+    nodes.each(function (d) {
         const node = d3.select(this);
         const nodeData = d.data;
         const nodeCard = node.select('.node-card');
@@ -434,12 +452,12 @@ function searchDiagram() {
         const matchFound = fullText.includes(searchTerm);
 
         node.classed('node-highlight', matchFound);
-        
+
         if (matchFound) {
             matchCount++;
             if (!firstMatch) firstMatch = node;
-            
-            const nodeContent = nodeData.type === 'array' || nodeData.type === 'object' ? 
+
+            const nodeContent = nodeData.type === 'array' || nodeData.type === 'object' ?
                 `<div class="node-container">
                     <div class="node-header">
                         <span class="toggle-icon" onclick="toggleNode('${nodeData.name}')" 
@@ -456,7 +474,7 @@ function searchDiagram() {
                         <span class="${getValueClass(nodeData.type)}">${highlightText(formatValue(nodeData.value, nodeData.type), searchTerm)}</span>
                     </div>
                 </div>`;
-            
+
             nodeCard.html(nodeContent);
         } else {
             nodeCard.html(() => createNodeContent(d));
@@ -473,7 +491,7 @@ function searchDiagram() {
         if (firstMatch) {
             const transform = firstMatch.datum();
             const scale = 1.5; // Nível de zoom
-            
+
             const newTransform = d3.zoomIdentity
                 .translate(
                     svg.node().clientWidth / 2 - transform.y,
@@ -482,8 +500,8 @@ function searchDiagram() {
                 .scale(scale);
 
             svg.transition()
-               .duration(750)
-               .call(zoom.transform, newTransform);
+                .duration(750)
+                .call(zoom.transform, newTransform);
         }
     } else {
         resultCount.style.opacity = '0';
@@ -501,54 +519,20 @@ function highlightText(text, searchTerm) {
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (!localStorage.getItem('welcomeShown')) {
         showWelcomePopup();
         localStorage.setItem('welcomeShown', 'true');
     }
-    
+
     // Adicionar evento de pesquisa
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', debounce(searchDiagram, 300));
 
-    // Nova implementação do resize
-    const editorPanel = document.querySelector('.editor-panel');
-    const resizer = document.querySelector('.resizer');
-    let isResizing = false;
-    let startX;
-    let startWidth;
+    initializeResizer();
 
-    resizer.addEventListener('mousedown', function(e) {
-        isResizing = true;
-        startX = e.pageX;
-        startWidth = editorPanel.offsetWidth;
-        
-        resizer.classList.add('dragging');
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-    });
-
-    document.addEventListener('mousemove', function(e) {
-        if (!isResizing) return;
-
-        const width = startWidth + (e.pageX - startX);
-        const containerWidth = editorPanel.parentElement.offsetWidth;
-        
-        if (width >= 200 && width <= containerWidth * 0.8) {
-            editorPanel.style.width = width + 'px';
-            ace.edit('editor').resize();
-        }
-    });
-
-    document.addEventListener('mouseup', function() {
-        if (isResizing) {
-            isResizing = false;
-            resizer.classList.remove('dragging');
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-            fitContent();
-        }
-    });
+    // Carregar o JSON padrão
+    loadDefaultJSON();
 });
 
 // Função auxiliar para debounce
@@ -566,7 +550,7 @@ function debounce(func, wait) {
 
 function handleEditorAction(action) {
     if (!action) return;
-    
+
     switch (action) {
         case 'format':
             formatJSON();
@@ -581,7 +565,105 @@ function handleEditorAction(action) {
             expandAll();
             break;
     }
-    
+
     // Reset dropdown
     event.target.value = '';
 }
+
+function initializeResizer() {
+    const leftPanel = document.querySelector('.left-panel');
+    const resizer = document.querySelector('.resizer');
+    const container = document.querySelector('.container');
+
+    let isResizing = false;
+    let startX, startWidth;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.pageX;
+        startWidth = leftPanel.offsetWidth;
+
+        resizer.classList.add('active');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const dx = e.pageX - startX;
+        const newWidth = startWidth + dx;
+        const containerWidth = container.offsetWidth;
+
+        // Limitar o redimensionamento com animação suave
+        if (newWidth >= 200 && newWidth <= containerWidth * 0.8) {
+            leftPanel.style.width = `${newWidth}px`;
+
+            // Atualizar o editor sem redimensionar o SVG
+            if (editor) {
+                editor.resize();
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            // Apenas atualizar o editor, sem interferir no zoom
+            if (editor) {
+                editor.resize();
+            }
+        }
+    });
+}
+
+// Função para carregar o JSON padrão
+async function loadDefaultJSON() {
+    try {
+        const response = await fetch('./static/public/default.json');
+        const data = await response.json();
+        editor.setValue(JSON.stringify(data, null, 2), -1);
+        updateVisualization(data);
+    } catch (error) {
+        console.error('Erro ao carregar JSON padrão:', error);
+    }
+}
+
+// Funções para o menu de configurações
+function toggleSettings() {
+    const menu = document.getElementById('settings-menu');
+    const button = document.querySelector('.settings-button');
+    menu.classList.toggle('show');
+    button.classList.toggle('active');
+}
+
+function toggleGrid() {
+    const visualizer = document.getElementById('visualizer');
+    const checkbox = document.getElementById('showGrid');
+    
+    if (checkbox.checked) {
+        visualizer.style.backgroundImage = `
+            linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px)
+        `;
+        visualizer.style.backgroundSize = '20px 20px';
+    } else {
+        visualizer.style.backgroundImage = 'none';
+        visualizer.style.backgroundSize = '0';
+    }
+}
+
+// Fechar menu quando clicar fora
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('settings-menu');
+    const button = document.querySelector('.settings-button');
+    
+    if (!menu.contains(event.target) && !button.contains(event.target)) {
+        menu.classList.remove('show');
+        button.classList.remove('active');
+    }
+});

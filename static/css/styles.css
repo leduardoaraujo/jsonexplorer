@@ -25,55 +25,50 @@ body {
     display: flex;
     height: 100vh;
     width: 100vw;
+    overflow: hidden;
+    position: relative;
+}
+
+.left-panel {
+    width: 40%;
+    min-width: 200px;
+    max-width: 80%;
+    height: 100vh;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+.right-panel {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    z-index: 1;
+    position: relative;
 }
 
 .editor-panel {
     min-width: 200px;
     max-width: 80%;
     width: 40%;
-    height: 100%;
+    height: 100vh;
     background-color: var(--bg-secondary);
     display: flex;
     flex-direction: column;
-    position: relative;
     overflow: hidden;
 }
 
-.resizer {
-    width: 6px;
-    height: 100%;
-    background-color: var(--border-color);
-    cursor: col-resize;
-    transition: background-color 0.2s;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 10;
-}
-
-.resizer:hover,
-.resizer.dragging {
-    background-color: var(--accent-color);
-}
-
-.editor-panel:hover {
-    border-right-color: var(--accent-color);
-}
-
-.editor-panel.resizing {
-    user-select: none;
-}
-
-/* Remover outros estilos relacionados ao resizer */
-.resizer, .editor-panel::-webkit-resizer {
+/* Remover todos os estilos de redimensionamento */
+.resizer-bar,
+.resizable,
+.resizer-handle {
     display: none;
-}
-
-.visualizer-panel {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
 }
 
 .editor-header,
@@ -92,6 +87,9 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
+    position: relative;
+    z-index: 10;
+    background-color: var(--bg-primary);
 }
 
 .editor-controls,
@@ -110,19 +108,27 @@ button {
     font-size: 0.9rem;
     transition: opacity 0.2s;
 }
-.visualize{
+
+.visualize {
     background-color: #FBA518;
 }
+
 .save {
     background-color: #73C7C7;
 }
+
 button:hover {
     opacity: 10;
 }
 
 #editor {
-    flex: 1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
     font-size: 14px;
 }
 
@@ -132,9 +138,14 @@ button:hover {
     overflow: hidden;
     position: relative;
     background-color: var(--bg-primary);
+    z-index: 1;
+    pointer-events: all;
+    background-image:
+        linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
-/* Estilos dos nós */
 .node-card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -150,6 +161,9 @@ button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
+    pointer-events: all;
+    position: relative;
+    z-index: 3;
 }
 
 .node-container {
@@ -213,7 +227,7 @@ button:hover {
 
 /* Ajustes de zoom e interação */
 .node:hover .node-card {
-    border-color: var(--accent-color);
+    border-color: var (--accent-color);
     box-shadow: 0 0 0 1px var(--accent-color);
 }
 
@@ -276,6 +290,7 @@ button:hover {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -316,7 +331,7 @@ button:hover {
 }
 
 #searchInput:focus {
-    border-color: var(yellow);
+    border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
@@ -363,14 +378,17 @@ button:hover {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    padding: 0.5rem 2.5rem 0.5rem 1rem; /* Aumentado padding direito para a seta */
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    /* Aumentado padding direito para a seta */
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
     outline: none;
     transition: all 0.3s ease;
-    min-width: 160px; /* Aumentada largura mínima */
-    max-width: 200px; /* Adicionada largura máxima */
+    min-width: 160px;
+    /* Aumentada largura mínima */
+    max-width: 200px;
+    /* Adicionada largura máxima */
     width: 100%;
     appearance: none;
     -webkit-appearance: none;
@@ -397,18 +415,19 @@ button:hover {
     color: var(--text-primary);
     padding: 8px 12px;
     min-width: 100%;
-    white-space: normal; /* Permite quebra de linha nas opções */
+    white-space: normal;
+    /* Permite quebra de linha nas opções */
     word-wrap: break-word;
+}
+
+.control-dropdown option:hover {
+    background-color: var (--accent-color);
 }
 
 /* Remover estilos antigos de ícones */
 .dropdown-wrapper,
 .dropdown-icon {
     display: none;
-}
-
-.control-dropdown option:hover {
-    background-color: var(--accent-color);
 }
 
 .action-button {
@@ -469,6 +488,264 @@ button:hover {
     user-select: none;
 }
 
+/* Resizable Square Styles */
+.resizable {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 100px;
+    height: 100px;
+    background-color: var(--accent-color);
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    cursor: move;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.resizable:hover {
+    opacity: 1;
+}
+
+.resizer-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 15px;
+    height: 15px;
+    background-color: var(--text-primary);
+    cursor: se-resize;
+    border-radius: 0 0 4px 0;
+}
+
+.loading-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-secondary);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.loading-indicator.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--accent-color);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Correção dos estilos do editor e containers */
+.editor-container {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    height: calc(100% - 60px);
+    /* altura total menos o header */
+    overflow: hidden;
+}
+
+.editor-header {
+    height: 60px;
+    min-height: 60px;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-secondary);
+    z-index: 1;
+}
+
+.editor-panel {
+    min-width: 200px;
+    max-width: 80%;
+    width: 40%;
+    height: 100vh;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Estilos para o redimensionamento */
+.resizer-bar {
+    width: 4px;
+    height: 100%;
+    background-color: var(--border-color);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+}
+
+.resizer-bar:hover,
+.resizer-bar.active {
+    background-color: var(--accent-color);
+}
+
 .resizer {
+    width: 8px;
+    background-color: var(--border-color);
+    cursor: col-resize;
+    height: 100%;
+    transition: background-color 0.2s ease;
+    position: relative;
+    z-index: 11;
+    opacity: 0.5;
+}
+
+.resizer:hover,
+.resizer.active {
+    opacity: 1;
+    background-color: var(--accent-color);
+}
+
+.resizer::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 30px;
+    width: 2px;
+    background-color: var(--text-secondary);
+    border-radius: 2px;
+}
+
+.resizer:hover,
+.resizer.active {
+    background-color: var(--accent-color);
+}
+
+.resizer.active::after,
+.resizer:hover::after {
+    background-color: var(--text-primary);
+}
+
+/* Garantir que os nós sejam clicáveis */
+.node {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+svg {
+    pointer-events: all;
+}
+
+svg g {
+    z-index: 2;
+    position: relative;
+}
+
+.grid {
+    stroke: var(--border-color);
+    stroke-opacity: 0.05;
+    shape-rendering: crispEdges;
+    z-index: 1;
+}
+
+.grid-pattern {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-opacity: 0.05;
+}
+
+/* Estilos do Grid */
+.grid {
+    stroke: var(--border-color);
+    stroke-opacity: 0.1;
+    shape-rendering: crispEdges;
+}
+
+.grid-pattern {
+    fill: none;
+}
+
+/* Estilos do menu de configurações */
+.settings-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px;
+    min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
     display: none;
+    margin-top: 4px;
+}
+
+.settings-menu.show {
+    display: block;
+}
+
+.settings-item {
+    padding: 8px;
+}
+
+.settings-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.checkmark {
+    position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--accent-color);
+    border-radius: 3px;
+}
+
+.settings-label input:checked + .checkmark::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--accent-color);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.settings-button {
+    position: relative;
+}
+
+.settings-button.active {
+    background-color: var(--border-color);
+}
+
+.settings-wrapper {
+    position: relative;
+    display: inline-block;
 }
