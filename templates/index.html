@@ -15,6 +15,7 @@
                 <h3>JSON Explorer</h3>
                 <div class="editor-controls">
                     <select class="control-dropdown" onchange="handleEditorAction(this.value)">
+                        <option value="" disabled selected>Escolha uma ação</option>
                         <option value="format">Formatar JSON</option>
                         <option value="clear">Limpar Editor</option>
                     </select>
@@ -37,13 +38,14 @@
                 </div>
                 <div class="visualizer-controls">
                     <select class="control-dropdown" onchange="handleZoomAction(this.value)">
+                        <option value="" disabled selected>Escolha um zoom</option>
                         <option value="in">Aumentar</option>
                         <option value="out">Reduzir</option>
                         <option value="reset">Redefinir</option>
                         <option value="fit">Ajustar</option>
                     </select>
                     <select class="control-dropdown" onchange="handleVisualizerAction(this.value)">
-                        <option value="">Ações</option>
+                        <option value="" disabled selected>Escolha uma ação</option>
                         <option value="save">Salvar SVG</option>
                     </select>
                 </div>

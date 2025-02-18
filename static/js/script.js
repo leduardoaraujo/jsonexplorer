@@ -17,6 +17,9 @@ editor.getSession().on('change', debounce(() => {
         if (content.trim()) {
             const data = JSON.parse(content);
             updateVisualization(data);
+        } else {
+            // Se o editor estiver vazio, limpa o diagrama
+            g.selectAll("*").remove();
         }
     } catch (e) {
         // Silenciosamente ignora erros durante a digitação
@@ -71,7 +74,6 @@ function saveDiagram() {
     URL.revokeObjectURL(url);
 }
 
-
 function clearEditor() {
     const content = editor.getValue(); 
     if (!content.trim()) {
@@ -79,6 +81,7 @@ function clearEditor() {
         return;
     } else {
         editor.setValue("");
+        g.selectAll("*").remove();
     }
 }
 
@@ -135,6 +138,9 @@ function updateVisualization(data) {
         .append("xhtml:div")
         .attr("class", "node-card")
         .html(d => createNodeContent(d.data));
+
+    // Ajustar o conteúdo após renderizar
+    fitContent();
 }
 
 // Função para criar o conteúdo do nó
@@ -313,13 +319,13 @@ function searchDiagram() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const nodes = d3.selectAll('.node');
     let matchCount = 0;
+    let firstMatch = null;
 
     nodes.each(function(d) {
         const node = d3.select(this);
         const nodeData = d.data;
         const nodeCard = node.select('.node-card');
 
-        // Se a barra de pesquisa estiver vazia, restaura o conteúdo original
         if (!searchTerm) {
             node.classed('node-highlight', false);
             nodeCard.html(createNodeContent(nodeData));
@@ -333,8 +339,10 @@ function searchDiagram() {
         
         if (matchFound) {
             matchCount++;
+            if (!firstMatch) {
+                firstMatch = d; // Guarda o primeiro nó encontrado
+            }
             
-            // Recriar o conteúdo do nó com o highlight
             const nodeContent = nodeData.children ? 
                 `<div class="node-container">
                     <div class="node-header">
@@ -351,15 +359,51 @@ function searchDiagram() {
             
             nodeCard.html(nodeContent);
         } else {
-            // Restaura o conteúdo original para nós que não correspondem
             nodeCard.html(createNodeContent(nodeData));
         }
     });
 
-    // Atualizar contador de resultados
+    // Foca no primeiro nó encontrado
+    if (firstMatch && searchTerm) {
+        focusOnNode(firstMatch);
+    }
+
+    // Atualizar contador
+    updateSearchCount(matchCount, searchTerm);
+}
+
+// Nova função para focar em um nó
+function focusOnNode(node) {
+    const bounds = g.node().getBBox();
+    const parent = svg.node().getBoundingClientRect();
+    const fullWidth = parent.width;
+    const fullHeight = parent.height;
+
+    // Calcula a escala para manter o nó visível
+    const scale = Math.min(
+        0.9 * fullWidth / bounds.width,
+        0.9 * fullHeight / bounds.height
+    );
+
+    // Calcula a transformação para centralizar no nó
+    const transform = d3.zoomIdentity
+        .translate(
+            fullWidth / 2 - node.y * scale,
+            fullHeight / 2 - node.x * scale
+        )
+        .scale(scale);
+
+    // Aplica a transformação com animação
+    svg.transition()
+        .duration(750)
+        .call(zoom.transform, transform);
+}
+
+// Função auxiliar para atualizar o contador
+function updateSearchCount(count, searchTerm) {
     const resultCount = document.getElementById('resultCount');
     if (searchTerm.length > 0) {
-        resultCount.textContent = `${matchCount} resultado${matchCount !== 1 ? 's' : ''} encontrado${matchCount !== 1 ? 's' : ''}`;
+        resultCount.textContent = `${count} resultado${count !== 1 ? 's' : ''} encontrado${count !== 1 ? 's' : ''}`;
         resultCount.style.opacity = '1';
     } else {
         resultCount.style.opacity = '0';
@@ -384,6 +428,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // Adicionar evento de pesquisa
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', debounce(searchDiagram, 300));
+
+    // Adicionar evento de clique global para fechar dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.control-dropdown');
+        dropdowns.forEach(dropdown => {
+            const isZoomDropdown = dropdown.closest('.visualizer-controls') && 
+                                 dropdown.getAttribute('onchange').includes('handleZoomAction');
+            
+            // Não reseta o dropdown de zoom se ele for o alvo do clique
+            if (dropdown === event.target) return;
+            
+            // Não reseta o valor do dropdown de zoom, mesmo quando clicar fora
+            if (isZoomDropdown) return;
+            
+            // Para outros dropdowns, reseta quando clicar fora
+            if (!dropdown.contains(event.target) && dropdown.value) {
+                dropdown.value = '';
+            }
+        });
+    });
 });
 
 // Função auxiliar para debounce
@@ -410,9 +474,6 @@ function handleEditorAction(action) {
             clearEditor();
             break;
     }
-    
-    // Reset dropdown
-    event.target.value = '';
 }
 
 function handleZoomAction(action) {
@@ -432,9 +493,6 @@ function handleZoomAction(action) {
             fitContent();
             break;
     }
-    
-    // Reset dropdown
-    event.target.value = '';
 }
 
 function handleVisualizerAction(action) {
