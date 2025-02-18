@@ -1,33 +1,25 @@
+// Constantes
+const ZOOM_SCALE = 1.3;
+const ZOOM_DURATION = 300;
+const DEBOUNCE_DELAY = 300;
+const NODE_BASE_HEIGHT = 45;
+const NODE_MIN_WIDTH = 180;
+const DEFAULT_FONT = 'Monaco, Menlo, Ubuntu Mono, monospace';
+const DEFAULT_FONT_SIZE = '13px';
+
 // Inicialização do editor ACE
 let editor = ace.edit("editor");
-editor.setTheme("ace/theme/monokai");
+editor.setTheme("ace/theme/github_dark");
 editor.session.setMode("ace/mode/json");
 editor.setOptions({
-    fontSize: "14px",
+    fontSize: DEFAULT_FONT_SIZE,
     showPrintMargin: true,
     showGutter: true,
     highlightActiveLine: true,
     wrap: true
 });
 
-// Adicionar após a inicialização do editor
-editor.getSession().on('change', debounce(() => {
-    try {
-        const content = editor.getValue();
-        if (content.trim()) {
-            const data = JSON.parse(content);
-            updateVisualization(data);
-        } else {
-            // Se o editor estiver vazio, limpa o diagrama
-            g.selectAll("*").remove();
-        }
-    } catch (e) {
-        // Silenciosamente ignora erros durante a digitação
-        console.log("Aguardando JSON válido...");
-    }
-}, 300));
-
-// Inicialização do SVG e zoom
+// Setup D3
 let svg = d3.select("#visualizer")
     .append("svg")
     .attr("width", "100%")
@@ -36,6 +28,209 @@ let svg = d3.select("#visualizer")
 let g = svg.append("g");
 let zoom = d3.zoom().on("zoom", (event) => g.attr("transform", event.transform));
 svg.call(zoom);
+
+// Mapa global para armazenar estados dos nós
+let collapsedNodes = new Map();
+
+// Cache para medições de texto
+const measurementCache = new Map();
+
+// Atualizar o zoom level global
+let currentZoom = 1;
+
+// Modificar as funções de zoom para atualizar o indicador
+function updateZoomLevel(scale) {
+    currentZoom = scale;
+    const percentage = Math.round(scale * 100);
+    document.getElementById('zoomLevel').textContent = `${percentage}%`;
+}
+
+// Eventos
+editor.getSession().on('change', debounce(() => {
+    try {
+        const content = editor.getValue().trim();
+        if (content) {
+            updateVisualization(JSON.parse(content));
+        } else {
+            g.selectAll("*").remove();
+        }
+    } catch (e) {
+        console.log("Aguardando JSON válido...");
+    }
+}, DEBOUNCE_DELAY));
+
+// Funções principais
+function updateVisualization(data, shouldAnimate = true) {
+    g.selectAll("*").remove();
+    measurementCache.clear();
+    
+    const root = d3.hierarchy(transformData(data));
+
+    root.descendants().forEach(d => {
+        if (collapsedNodes.has(d.data.name)) {
+            d._children = d.children;
+            d.children = null;
+        }
+    });
+
+    const treeLayout = d3.tree().nodeSize([100, 280]);
+    treeLayout(root);
+
+    // Links
+    g.selectAll(".link")
+        .data(root.links())
+        .join("path")
+        .attr("class", "link")
+        .attr("d", d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x))
+        .attr("stroke", "#4a5568")
+        .attr("stroke-width", 1.5)
+        .attr("fill", "none");
+
+    // Nodes
+    const nodes = g.selectAll(".node")
+        .data(root.descendants())
+        .join("g")
+        .attr("class", "node")
+        .attr("transform", d => `translate(${d.y},${d.x})`);
+
+    nodes.append("foreignObject")
+        .attr("x", d => -(getNodeWidth(d) / 2))
+        .attr("y", d => -(getNodeHeight(d) / 2))
+        .attr("width", getNodeWidth)
+        .attr("height", getNodeHeight)
+        .append("xhtml:div")
+        .attr("class", "node-card")
+        .html(createNodeContent);
+
+    if (shouldAnimate) fitContent();
+}
+
+function transformData(data, key = "root") {
+    if (data === null) return { name: key, type: "null", value: "null" };
+
+    const type = Array.isArray(data) ? "array" : typeof data;
+
+    if (type === "object" || type === "array") {
+        const children = Object.entries(data).map(([k, v]) => transformData(v, k));
+        return {
+            name: key,
+            type: type,
+            children: children,
+            collapsed: false,
+            value: type === "array" ? `${children.length} items` : `${Object.keys(data).length} props`
+        };
+    }
+
+    return { name: key, type: type, value: String(data) };
+}
+
+function createNodeContent(d) {
+    const content = ['<div class="node-container">'];
+    
+    if (d.data.children) {
+        const isCollapsed = collapsedNodes.has(d.data.name);
+        const childCount = d._children ? d._children.length : (d.children ? d.children.length : 0);
+        
+        content.push(`
+            <div class="node-header">
+                <div class="toggle-icon" onclick="toggleNode('${d.data.name}')" 
+                    style="cursor: pointer; padding: 5px 10px; margin-right: 5px; display: inline-block;">
+                    ${isCollapsed ? '➕' : '➖'}
+                </div>
+                <span class="node-name">${d.data.name}</span>
+                <span class="node-count">[${childCount}]</span>
+            </div>
+        `);
+    } else {
+        content.push(`
+            <div class="node-content">
+                <span class="node-key">${d.data.name}:</span>
+                <span class="${getValueClass(d.data.type)}">${formatValue(d.data.value, d.data.type)}</span>
+            </div>
+        `);
+    }
+    
+    content.push('</div>');
+    return content.join('');
+}
+
+// Funções utilitárias otimizadas
+function getNodeWidth(d) {
+    const cacheKey = `width-${d.data.name}-${d.data.value || ''}-${d.data.children?.length || 0}`;
+    if (measurementCache.has(cacheKey)) return measurementCache.get(cacheKey);
+
+    const temp = document.createElement('div');
+    temp.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        white-space: nowrap;
+        font-family: ${DEFAULT_FONT};
+        font-size: ${DEFAULT_FONT_SIZE};
+    `;
+    
+    temp.textContent = d.data.children ? 
+        `${d.data.name} [${d.data.children.length}]` : 
+        `${d.data.name}: ${d.data.value}`;
+    
+    document.body.appendChild(temp);
+    const width = Math.max(NODE_MIN_WIDTH, temp.offsetWidth + 40);
+    document.body.removeChild(temp);
+    
+    measurementCache.set(cacheKey, width);
+    return width;
+}
+
+function getNodeHeight(d) {
+    const cacheKey = `height-${d.data.name}-${d.data.value || ''}-${d.data.children?.length || 0}`;
+    if (measurementCache.has(cacheKey)) return measurementCache.get(cacheKey);
+
+    const width = getNodeWidth(d);
+    const temp = document.createElement('div');
+    temp.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        width: ${width}px;
+        font-family: ${DEFAULT_FONT};
+        font-size: ${DEFAULT_FONT_SIZE};
+    `;
+    
+    temp.textContent = d.data.children ? 
+        `${d.data.name} [${d.data.children.length}]` : 
+        `${d.data.name}: ${d.data.value}`;
+    
+    document.body.appendChild(temp);
+    const height = Math.max(NODE_BASE_HEIGHT, temp.offsetHeight + 20);
+    document.body.removeChild(temp);
+    
+    measurementCache.set(cacheKey, height);
+    return height;
+}
+
+// Ações do usuário
+function toggleNode(nodeName) {
+    collapsedNodes.has(nodeName) ? 
+        collapsedNodes.delete(nodeName) : 
+        collapsedNodes.set(nodeName, true);
+    
+    updateVisualization(JSON.parse(editor.getValue()), false);
+}
+
+function collapseAll() {
+    d3.selectAll('.node').data().forEach(node => {
+        if (node.data.children) collapsedNodes.set(node.data.name, true);
+    });
+    updateVisualization(JSON.parse(editor.getValue()), false);
+}
+
+function expandAll() {
+    collapsedNodes.clear();
+    updateVisualization(JSON.parse(editor.getValue()), false);
+}
+
+// Outras funções necessárias permanecem iguais...
+// ...existing code for zoom controls, search, etc...
 
 // Formatação de JSON
 function formatJSON() {
@@ -56,20 +251,45 @@ function formatJSON() {
 function saveDiagram() {
     const content = editor.getValue();
     
-    // Verifica se o conteúdo do editor está vazio
     if (!content.trim()) {
         alert("O diagrama está vazio. Não é possível salvar.");
         return;
     }
 
-    // Se o conteúdo não estiver vazio, cria o SVG
-    const svgData = svg.node().outerHTML; // Obtém o conteúdo do SVG
+    // Criar um clone do SVG original
+    const originalSvg = svg.node();
+    const clonedSvg = originalSvg.cloneNode(true);
+    
+    // Ajustar o estilo do clone para garantir que todos os elementos sejam visíveis
+    clonedSvg.style.backgroundColor = 'var(--bg-primary)';
+    
+    // Copiar os estilos computados dos nodes
+    const nodeCards = clonedSvg.querySelectorAll('.node-card');
+    nodeCards.forEach(card => {
+        const original = originalSvg.querySelector('.node-card');
+        const computedStyle = window.getComputedStyle(original);
+        
+        card.style.backgroundColor = computedStyle.backgroundColor;
+        card.style.border = computedStyle.border;
+        card.style.borderRadius = computedStyle.borderRadius;
+        card.style.color = computedStyle.color;
+    });
 
-    const blob = new Blob([svgData], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
+    // Converter para string e fazer o download
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(clonedSvg);
+    
+    // Adicionar namespaces necessários
+    const svgBlob = new Blob([
+        `<?xml version="1.0" standalone="no"?>`,
+        `<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`,
+        svgString
+    ], { type: "image/svg+xml" });
+    
+    const url = URL.createObjectURL(svgBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "diagram.svg";
+    a.download = "json-diagram.svg";
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -81,6 +301,7 @@ function clearEditor() {
         return;
     } else {
         editor.setValue("");
+        // Limpar o diagrama
         g.selectAll("*").remove();
     }
 }
@@ -100,74 +321,6 @@ function visualizeJSON() {
     }
 }
 
-// Atualizando a visualização
-function updateVisualization(data) {
-    g.selectAll("*").remove();
-    const root = d3.hierarchy(transformData(data));
-
-    const treeLayout = d3.tree()
-        .nodeSize([100, 280])  // Aumentado o espaçamento vertical e horizontal
-        .separation((a, b) => (a.parent == b.parent ? 1.5 : 2)); // Aumentado o fator de separação
-
-    treeLayout(root);
-
-    // Adicionando links com curvas suaves
-    g.selectAll(".link")
-        .data(root.links())
-        .join("path")
-        .attr("class", "link")
-        .attr("d", d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x))
-        .attr("stroke", "#4a5568")
-        .attr("stroke-width", 1.5)
-        .attr("fill", "none");
-
-    const nodes = g.selectAll(".node")
-        .data(root.descendants())
-        .join("g")
-        .attr("class", "node")
-        .attr("transform", d => `translate(${d.y},${d.x})`);
-
-    // Adicionando cartões para os nós
-    nodes.append("foreignObject")
-        .attr("x", d => -(getNodeWidth(d) / 2))
-        .attr("y", d => -(getNodeHeight(d) / 2))
-        .attr("width", getNodeWidth)
-        .attr("height", getNodeHeight)
-        .append("xhtml:div")
-        .attr("class", "node-card")
-        .html(d => createNodeContent(d.data));
-
-    // Ajustar o conteúdo após renderizar
-    fitContent();
-}
-
-// Função para criar o conteúdo do nó
-function createNodeContent(data) {
-    let content = '<div class="node-container">';
-    
-    if (Array.isArray(data.children)) {
-        content += `
-            <div class="node-header">
-                <span class="node-name">${data.name}</span>
-                <span class="node-count">[${data.children.length}]</span>
-            </div>
-        `;
-    } else {
-        const valueClass = getValueClass(data.type);
-        content += `
-            <div class="node-content">
-                <span class="node-key">${data.name}:</span>
-                <span class="${valueClass}">${formatValue(data.value, data.type)}</span>
-            </div>
-        `;
-    }
-    
-    content += '</div>';
-    return content;
-}
-
 // Função para formatar valores
 function formatValue(value, type) {
     switch (type) {
@@ -183,7 +336,6 @@ function formatValue(value, type) {
             return value;
     }
 }
-
 // Função para obter classe do valor
 function getValueClass(type) {
     switch (type) {
@@ -198,89 +350,26 @@ function getValueClass(type) {
     }
 }
 
-// Transformando dados
-function transformData(data, key = "root") {
-    if (data === null) return { name: key, type: "null", value: "null" };
-
-    const type = Array.isArray(data) ? "array" : typeof data;
-
-    if (type === "object" || type === "array") {
-        const children = Object.entries(data).map(([k, v]) => transformData(v, k));
-        return {
-            name: key,
-            type: type,
-            children: children,
-            value: type === "array" ? `${children.length} items` : `${Object.keys(data).length} props`
-        };
-    }
-
-    return {
-        name: key,
-        type: type,
-        value: String(data)
-    };
-}
-
-// Ajustando tamanhos dos nós
-function getNodeWidth(d) {
-    // Criar elemento temporário para medir o texto
-    const temp = document.createElement('div');
-    temp.style.position = 'absolute';
-    temp.style.visibility = 'hidden';
-    temp.style.whiteSpace = 'nowrap';
-    temp.style.fontFamily = 'Monaco, Menlo, Ubuntu Mono, monospace';
-    temp.style.fontSize = '13px';
-    
-    // Adicionar conteúdo baseado no tipo de nó
-    if (d.data.children) {
-        temp.textContent = `${d.data.name} [${d.data.children.length}]`;
-    } else {
-        temp.textContent = `${d.data.name}: ${d.data.value}`;
-    }
-    
-    document.body.appendChild(temp);
-    const width = Math.max(180, temp.offsetWidth + 40); // 40px para padding
-    document.body.removeChild(temp);
-    
-    return width;
-}
-
-function getNodeHeight(d) {
-    let baseHeight = 45;
-    
-    // Criar elemento temporário para medir o texto
-    const temp = document.createElement('div');
-    temp.style.position = 'absolute';
-    temp.style.visibility = 'hidden';
-    temp.style.width = getNodeWidth(d) + 'px';
-    temp.style.fontFamily = 'Monaco, Menlo, Ubuntu Mono, monospace';
-    temp.style.fontSize = '13px';
-    
-    // Adicionar conteúdo para medir altura
-    if (d.data.children) {
-        temp.textContent = `${d.data.name} [${d.data.children.length}]`;
-    } else {
-        temp.textContent = `${d.data.name}: ${d.data.value}`;
-    }
-    
-    document.body.appendChild(temp);
-    const height = Math.max(baseHeight, temp.offsetHeight + 20); // 20px para padding
-    document.body.removeChild(temp);
-    
-    return height;
-}
-
 // Controles de zoom
 function zoomIn() {
-    svg.transition().call(zoom.scaleBy, 1.3);
+    svg.transition()
+        .duration(ZOOM_DURATION)
+        .call(zoom.scaleBy, ZOOM_SCALE)
+        .on("end", () => updateZoomLevel(currentZoom * ZOOM_SCALE));
 }
 
 function zoomOut() {
-    svg.transition().call(zoom.scaleBy, 0.7);
+    svg.transition()
+        .duration(ZOOM_DURATION)
+        .call(zoom.scaleBy, 1/ZOOM_SCALE)
+        .on("end", () => updateZoomLevel(currentZoom / ZOOM_SCALE));
 }
 
 function resetZoom() {
-    svg.transition().call(zoom.transform, d3.zoomIdentity);
+    svg.transition()
+        .duration(ZOOM_DURATION)
+        .call(zoom.transform, d3.zoomIdentity)
+        .on("end", () => updateZoomLevel(1));
 }
 
 function fitContent() {
@@ -301,8 +390,17 @@ function fitContent() {
         )
         .scale(scale);
 
-    svg.transition().duration(750).call(zoom.transform, transform);
+    svg.transition()
+        .duration(750)
+        .call(zoom.transform, transform)
+        .on("end", () => updateZoomLevel(scale));
 }
+
+// Atualizar o evento de zoom do D3
+zoom.on("zoom", (event) => {
+    g.attr("transform", event.transform);
+    updateZoomLevel(event.transform.k);
+});
 
 // Funções do modal de boas-vindas
 function showWelcomePopup() {
@@ -328,7 +426,7 @@ function searchDiagram() {
 
         if (!searchTerm) {
             node.classed('node-highlight', false);
-            nodeCard.html(createNodeContent(nodeData));
+            nodeCard.html(d => createNodeContent(d));
             return;
         }
 
@@ -339,15 +437,17 @@ function searchDiagram() {
         
         if (matchFound) {
             matchCount++;
-            if (!firstMatch) {
-                firstMatch = d; // Guarda o primeiro nó encontrado
-            }
+            if (!firstMatch) firstMatch = node;
             
-            const nodeContent = nodeData.children ? 
+            const nodeContent = nodeData.type === 'array' || nodeData.type === 'object' ? 
                 `<div class="node-container">
                     <div class="node-header">
+                        <span class="toggle-icon" onclick="toggleNode('${nodeData.name}')" 
+                            style="cursor: pointer; padding: 5px 10px; margin-right: 5px; display: inline-block;">
+                            ${collapsedNodes.has(nodeData.name) ? '➕' : '➖'}
+                        </span>
                         <span class="node-name">${highlightText(nodeData.name, searchTerm)}</span>
-                        <span class="node-count">[${nodeData.children.length}]</span>
+                        <span class="node-count">[${nodeData.children ? nodeData.children.length : 0}]</span>
                     </div>
                 </div>` :
                 `<div class="node-container">
@@ -359,55 +459,37 @@ function searchDiagram() {
             
             nodeCard.html(nodeContent);
         } else {
-            nodeCard.html(createNodeContent(nodeData));
+            nodeCard.html(() => createNodeContent(d));
         }
     });
 
-    // Foca no primeiro nó encontrado
-    if (firstMatch && searchTerm) {
-        focusOnNode(firstMatch);
-    }
-
-    // Atualizar contador
-    updateSearchCount(matchCount, searchTerm);
-}
-
-// Nova função para focar em um nó
-function focusOnNode(node) {
-    const bounds = g.node().getBBox();
-    const parent = svg.node().getBoundingClientRect();
-    const fullWidth = parent.width;
-    const fullHeight = parent.height;
-
-    // Calcula a escala para manter o nó visível
-    const scale = Math.min(
-        0.9 * fullWidth / bounds.width,
-        0.9 * fullHeight / bounds.height
-    );
-
-    // Calcula a transformação para centralizar no nó
-    const transform = d3.zoomIdentity
-        .translate(
-            fullWidth / 2 - node.y * scale,
-            fullHeight / 2 - node.x * scale
-        )
-        .scale(scale);
-
-    // Aplica a transformação com animação
-    svg.transition()
-        .duration(750)
-        .call(zoom.transform, transform);
-}
-
-// Função auxiliar para atualizar o contador
-function updateSearchCount(count, searchTerm) {
+    // Atualizar contador de resultados
     const resultCount = document.getElementById('resultCount');
     if (searchTerm.length > 0) {
-        resultCount.textContent = `${count} resultado${count !== 1 ? 's' : ''} encontrado${count !== 1 ? 's' : ''}`;
+        resultCount.textContent = `${matchCount} resultado${matchCount !== 1 ? 's' : ''} encontrado${matchCount !== 1 ? 's' : ''}`;
         resultCount.style.opacity = '1';
+
+        // Zoom no primeiro resultado encontrado
+        if (firstMatch) {
+            const transform = firstMatch.datum();
+            const scale = 1.5; // Nível de zoom
+            
+            const newTransform = d3.zoomIdentity
+                .translate(
+                    svg.node().clientWidth / 2 - transform.y,
+                    svg.node().clientHeight / 2 - transform.x
+                )
+                .scale(scale);
+
+            svg.transition()
+               .duration(750)
+               .call(zoom.transform, newTransform);
+        }
     } else {
         resultCount.style.opacity = '0';
         setTimeout(() => resultCount.textContent = '', 200);
+        // Resetar o zoom quando a pesquisa estiver vazia
+        resetZoom();
     }
 }
 
@@ -429,24 +511,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', debounce(searchDiagram, 300));
 
-    // Adicionar evento de clique global para fechar dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.control-dropdown');
-        dropdowns.forEach(dropdown => {
-            const isZoomDropdown = dropdown.closest('.visualizer-controls') && 
-                                 dropdown.getAttribute('onchange').includes('handleZoomAction');
-            
-            // Não reseta o dropdown de zoom se ele for o alvo do clique
-            if (dropdown === event.target) return;
-            
-            // Não reseta o valor do dropdown de zoom, mesmo quando clicar fora
-            if (isZoomDropdown) return;
-            
-            // Para outros dropdowns, reseta quando clicar fora
-            if (!dropdown.contains(event.target) && dropdown.value) {
-                dropdown.value = '';
-            }
-        });
+    // Nova implementação do resize
+    const editorPanel = document.querySelector('.editor-panel');
+    const resizer = document.querySelector('.resizer');
+    let isResizing = false;
+    let startX;
+    let startWidth;
+
+    resizer.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startX = e.pageX;
+        startWidth = editorPanel.offsetWidth;
+        
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+
+        const width = startWidth + (e.pageX - startX);
+        const containerWidth = editorPanel.parentElement.offsetWidth;
+        
+        if (width >= 200 && width <= containerWidth * 0.8) {
+            editorPanel.style.width = width + 'px';
+            ace.edit('editor').resize();
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            fitContent();
+        }
     });
 });
 
@@ -473,34 +574,11 @@ function handleEditorAction(action) {
         case 'clear':
             clearEditor();
             break;
-    }
-}
-
-function handleZoomAction(action) {
-    if (!action) return;
-    
-    switch (action) {
-        case 'in':
-            zoomIn();
+        case 'collapseAll':
+            collapseAll();
             break;
-        case 'out':
-            zoomOut();
-            break;
-        case 'reset':
-            resetZoom();
-            break;
-        case 'fit':
-            fitContent();
-            break;
-    }
-}
-
-function handleVisualizerAction(action) {
-    if (!action) return;
-    
-    switch (action) {
-        case 'save':
-            saveDiagram();
+        case 'expandAll':
+            expandAll();
             break;
     }
     
