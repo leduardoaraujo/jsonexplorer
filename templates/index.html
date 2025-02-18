@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor | 🌎JSON Explorer</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-panel">
+            <div class="editor-header">
+                <h3>JSON Explorer</h3>
+                <div class="editor-controls">
+                    <select class="control-dropdown" onchange="handleEditorAction(this.value)">
+                        <option value="format">Formatar JSON</option>
+                        <option value="clear">Limpar Editor</option>
+                    </select>
+                </div>
+            </div>
+            <div id="editor"></div>
+        </div>
+        <div class="visualizer-panel">
+            <div class="visualizer-header">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Pesquisar no diagrama..."
+                        autocomplete="off"
+                    >
+                    <div class="search-results">
+                        <span id="resultCount"></span>
+                    </div>
+                </div>
+                <div class="visualizer-controls">
+                    <select class="control-dropdown" onchange="handleZoomAction(this.value)">
+                        <option value="in">Aumentar</option>
+                        <option value="out">Reduzir</option>
+                        <option value="reset">Redefinir</option>
+                        <option value="fit">Ajustar</option>
+                    </select>
+                    <select class="control-dropdown" onchange="handleVisualizerAction(this.value)">
+                        <option value="">Ações</option>
+                        <option value="save">Salvar SVG</option>
+                    </select>
+                </div>
+            </div>
+            <div id="visualizer"></div>
+        </div>
+    </div>
+    <div id="welcome-modal" class="modal">
+        <div class="modal-content">
+            <h2>Bem-vindo ao JSON Explorer!</h2>
+            <p>Uma ferramenta simples para explorar e manipular arquivos JSON.</p>
+            <button onclick="closeWelcomePopup()">Fechar</button>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+:root {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --accent-color: #60A5FA;
+    --border-color: #333;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+.editor-panel {
+    width: 40%;
+    height: 100%;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.visualizer-panel {
+    width: 60%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-header,
+.visualizer-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.visualizer-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.editor-controls,
+.visualizer-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+button {
+    background-color: var(--accent-color);
+    color: var(--text-primary);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+}
+.visualize{
+    background-color: #FBA518;
+}
+.save {
+    background-color: #73C7C7;
+}
+button:hover {
+    opacity: 10;
+}
+
+#editor {
+    flex: 1;
+    width: 100%;
+    font-size: 14px;
+}
+
+#visualizer {
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--bg-primary);
+}
+
+/* Estilos dos nós */
+.node-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+}
+
+.node-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.node-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.node-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.node-name {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.node-count {
+    color: #6B7280;
+    font-size: 12px;
+}
+
+.node-key {
+    color: var(--accent-color);
+}
+
+.string-value {
+    color: #F87171;
+}
+
+.number-value {
+    color: #3B82F6;
+}
+
+.boolean-value {
+    color: #10B981;
+}
+
+.default-value {
+    color: #D1D5DB;
+}
+
+/* Estilos dos links */
+.link {
+    stroke: #4B5563;
+    stroke-opacity: 0.4;
+    fill: none;
+}
+
+/* Ajustes de zoom e interação */
+.node:hover .node-card {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+/* Modal de boas-vindas */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    opacity: 1;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    transform: translateY(-50px);
+    transition: transform 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+}
+
+.modal-content h2 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.modal-content p {
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.modal-content button {
+    background-color: var(--accent-color);
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+}
+
+/* Animações de entrada */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 0.8s ease forwards;
+}
+
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
+
+/* Estilos atualizados da barra de pesquisa */
+.search-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 300px;
+}
+
+#searchInput {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    width: 100%;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+}
+
+#searchInput:focus {
+    border-color: var(yellow);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.search-results {
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 2px 0;
+    min-height: 16px;
+    font-family: inherit;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* Estilo atualizado para nós destacados na pesquisa */
+.node-highlight .node-card {
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+    transition: all 0.3s ease;
+}
+
+/* Novo estilo para texto destacado */
+.text-highlight {
+    color: #FBA518;
+    font-weight: bold;
+    background-color: rgba(251, 165, 24, 0.1);
+    border-radius: 2px;
+}
+
+/* Estilos para lista de propriedades */
+.properties-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.property-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
