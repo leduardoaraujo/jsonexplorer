@@ -43,5 +43,11 @@
         "valor_total": 12.0
       }
     ]
+  },
+  "example": "Hello World",
+  "number": 42,
+  "array": [1, 2, 3],
+  "object": {
+    "nested": "value"
   }
 }
