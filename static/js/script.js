@@ -71,36 +71,33 @@ async function initializeEditor() {
 }
 
 async function initializeVisualization() {
-    // Setup D3
     svg = d3.select(CONFIG.SELECTORS.VISUALIZER)
         .append("svg")
         .attr("width", "100%")
-        .attr("height", "100%");
-
-    // Adicionar padrão de grid
-    svg.append("defs")
-        .append("pattern")
-        .attr("id", "grid-pattern")
-        .attr("width", CONFIG.GRID.SIZE)
-        .attr("height", CONFIG.GRID.SIZE)
-        .attr("patternUnits", "userSpaceOnUse")
-        .append("path")
-        .attr("d", "M 20 0 L 0 0 0 20")
-        .attr("class", "grid-pattern");
-
-    // Adicionar grid ao background
-    svg.append("rect")
-        .attr("width", "100%")
         .attr("height", "100%")
-        .attr("class", "grid")
-        .style("fill", "url(#grid-pattern)");
+        .style("position", "absolute")
+        .style("overflow", "visible");
 
-    g = svg.append("g");
-    zoom = d3.zoom().on("zoom", (event) => {
-        g.attr("transform", event.transform);
-        updateZoomLevel(event.transform.k);
-    });
-    svg.call(zoom);
+    // Criar grupo principal com melhor performance de renderização
+    g = svg.append("g")
+        .style("transform-origin", "0 0")
+        .attr("transform", "translate(0,0) scale(1)")
+        .style("will-change", "transform");
+
+    // Configurar zoom com melhor performance
+    zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on("zoom", (event) => {
+            window.requestAnimationFrame(() => {
+                const transform = event.transform;
+                g.style("transform", `translate(${transform.x}px,${transform.y}px) scale(${transform.k})`);
+                g.attr("transform", `translate(${transform.x},${transform.y}) scale(${transform.k})`);
+                updateZoomLevel(transform.k);
+            });
+        });
+
+    svg.call(zoom)
+        .call(zoom.transform, d3.zoomIdentity);
 
     return new Promise(resolve => setTimeout(resolve, 100));
 }
@@ -227,6 +224,7 @@ function updateVisualization(data, shouldAnimate = true) {
         .data(root.descendants())
         .join("g")
         .attr("class", "node")
+        .style("transform", d => `translate(${d.y}px,${d.x}px)`)
         .attr("transform", d => `translate(${d.y},${d.x})`);
 
     nodes.append("foreignObject")
@@ -524,10 +522,11 @@ function fitContent() {
         )
         .scale(scale);
 
-    svg.transition()
-        .duration(750)
-        .call(zoom.transform, transform)
-        .on("end", () => updateZoomLevel(scale));
+    window.requestAnimationFrame(() => {
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform, transform);
+    });
 }
 
 // Atualizar o evento de zoom do D3
