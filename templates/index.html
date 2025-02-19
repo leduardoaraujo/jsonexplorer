@@ -21,26 +21,13 @@
                         <option value="" disabled selected>Escolha uma ação</option>
                         <option value="format">Formatar JSON</option>
                         <option value="clear">Limpar Editor</option>
-                        <option value="collapseAll">Colapsar Tudo</option>
-                        <option value="expandAll">Expandir Tudo</option>
                     </select>
-                    <div class="settings-wrapper">
-                        <button class="icon-button settings-button" onclick="toggleSettings()" title="Configurações">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </button>
-                        <div id="settings-menu" class="settings-menu">
-                            <div class="settings-item">
-                                <label class="settings-label">
-                                    <input type="checkbox" id="showGrid" checked onchange="toggleGrid()">
-                                    <span class="checkmark"></span>
-                                    Mostrar Grid
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                    <button class="action-button" onclick="showOptionsModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div class="editor-container">
@@ -57,6 +44,13 @@
                     </div>
                 </div>
                 <div class="visualizer-controls">
+                    <div class="collapse-controls">
+                        <label class="switch">
+                            <input type="checkbox" id="collapseToggle" onchange="handleCollapseToggle(this.checked)">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <label class="switch-label">Colapsar</label>
+                    </div>
                     <div class="zoom-controls">
                         <button class="icon-button" onclick="zoomIn()" title="Aumentar">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -110,6 +104,19 @@
                 </ul>
             </div>
             <button onclick="closeWelcomePopup()">Fechar</button>
+        </div>
+    </div>
+    <div id="options-modal" class="modal">
+        <div class="modal-content options-content">
+            <h2>Configurações</h2>
+            <div class="settings-item">
+                <label class="settings-label">
+                    <input type="checkbox" id="showGrid" checked onchange="toggleGrid()">
+                    <span class="checkmark"></span>
+                    Mostrar Grid
+                </label>
+            </div>
+            <button class="close-button" onclick="closeOptionsModal()">Fechar</button>
         </div>
     </div>
     <!-- Carregar scripts na ordem correta -->

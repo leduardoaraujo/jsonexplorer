@@ -30,41 +30,43 @@ window.addEventListener('DOMContentLoaded', async function() {
 
 async function initializeEditor() {
     return new Promise((resolve) => {
-        // Garantir que o elemento editor existe
         const editorElement = document.getElementById('editor');
         if (!editorElement) {
             console.error('Elemento editor não encontrado');
+            resolve(false);
             return;
         }
 
-        // Inicialização do editor ACE
-        editor = ace.edit("editor");
-        editor.setTheme(CONFIG.EDITOR.THEME);
-        editor.session.setMode(CONFIG.EDITOR.MODE);
-        editor.setOptions({
-            fontSize: CONFIG.EDITOR.FONT_SIZE,
-            ...CONFIG.EDITOR.OPTIONS
-        });
+        try {
+            // Inicialização do editor ACE
+            editor = ace.edit("editor");
+            
+            // Restaurar tema salvo
+            const savedTheme = localStorage.getItem('theme');
+            const isLight = savedTheme === 'light';
+            editor.setTheme(isLight ? 'ace/theme/chrome' : 'ace/theme/github_dark');
+            
+            editor.session.setMode("ace/mode/json");
+            editor.setOptions({
+                fontSize: "14px",
+                showPrintMargin: true,
+                showGutter: true,
+                highlightActiveLine: true,
+                wrap: true
+            });
 
-        // Adicionar evento de mudança depois que o editor estiver pronto
-        editor.session.on('change', debounce(() => {
-            try {
-                const content = editor.getValue().trim();
-                if (content) {
-                    updateVisualization(JSON.parse(content));
-                } else {
-                    g?.selectAll("*").remove();
-                }
-            } catch (e) {
-                console.log("Aguardando JSON válido...");
+            // Configurar tema inicial
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) themeToggle.checked = isLight;
             }
-        }, CONFIG.UI.DEBOUNCE_DELAY));
 
-        // Forçar um resize inicial após um pequeno delay
-        setTimeout(() => {
-            editor.resize();
-            resolve();
-        }, 100);
+            resolve(true);
+        } catch (error) {
+            console.error('Erro ao inicializar editor:', error);
+            resolve(false);
+        }
     });
 }
 
@@ -125,28 +127,69 @@ async function loadDefaultJSON() {
 function setupEventListeners() {
     // Event listeners para pesquisa
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', debounce(searchDiagram, CONFIG.UI.DEBOUNCE_DELAY));
-    searchInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter' && searchResults.length > 0) {
-            event.preventDefault();
-            focusNextResult();
-        }
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(searchDiagram, CONFIG.UI.DEBOUNCE_DELAY));
+        searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && searchResults.length > 0) {
+                event.preventDefault();
+                focusNextResult();
+            }
+        });
+    }
 
-    // Event listener para menu de configurações
+    // Eventos para modais
+    window.showOptionsModal = function() {
+        const modal = document.getElementById('options-modal');
+        if (modal) modal.classList.add('show');
+    };
+
+    window.closeOptionsModal = function() {
+        const modal = document.getElementById('options-modal');
+        if (modal) modal.classList.remove('show');
+    };
+
+    // Fechar modal quando clicar fora ou pressionar ESC
     document.addEventListener('click', function(event) {
-        const menu = document.getElementById('settings-menu');
-        const button = document.querySelector('.settings-button');
-        if (!menu.contains(event.target) && !button.contains(event.target)) {
-            menu.classList.remove('show');
-            button.classList.remove('active');
+        const optionsModal = document.getElementById('options-modal');
+        if (optionsModal && event.target === optionsModal) {
+            closeOptionsModal();
         }
     });
 
-    // Verificar se é primeira visita
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeOptionsModal();
+        }
+    });
+
+    // Verificar primeira visita
     if (!localStorage.getItem(CONFIG.STORAGE_KEYS.WELCOME_SHOWN)) {
         showWelcomePopup();
         localStorage.setItem(CONFIG.STORAGE_KEYS.WELCOME_SHOWN, 'true');
+    }
+
+    // Restaurar estado do grid
+    const showGrid = localStorage.getItem('showGrid');
+    if (showGrid !== null) {
+        const checkbox = document.getElementById('showGrid');
+        if (checkbox) {
+            checkbox.checked = showGrid === 'true';
+            toggleGrid();
+        }
+    }
+
+    // Restaurar estado do collapse
+    const collapseToggle = document.getElementById('collapseToggle');
+    if (collapseToggle) {
+        collapseToggle.checked = false; // Sempre começa expandido
+    }
+
+    // Restaurar tema
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggle').checked = savedTheme === 'light';
+        editor.setTheme(savedTheme === 'light' ? 'ace/theme/chrome' : 'ace/theme/github_dark');
     }
 }
 
@@ -648,12 +691,6 @@ function handleEditorAction(action) {
         case 'clear':
             clearEditor();
             break;
-        case 'collapseAll':
-            collapseAll();
-            break;
-        case 'expandAll':
-            expandAll();
-            break;
     }
 
     // Reset dropdown
@@ -741,15 +778,19 @@ function toggleGrid() {
     const visualizer = document.getElementById('visualizer');
     const checkbox = document.getElementById('showGrid');
     
-    if (checkbox.checked) {
-        visualizer.style.backgroundImage = `
-            linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px)
-        `;
-        visualizer.style.backgroundSize = '20px 20px';
-    } else {
-        visualizer.style.backgroundImage = 'none';
-        visualizer.style.backgroundSize = '0';
+    if (visualizer && checkbox) {
+        if (checkbox.checked) {
+            visualizer.style.backgroundImage = `
+                linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px)
+            `;
+            visualizer.style.backgroundSize = '20px 20px';
+            localStorage.setItem('showGrid', 'true');
+        } else {
+            visualizer.style.backgroundImage = 'none';
+            visualizer.style.backgroundSize = '0';
+            localStorage.setItem('showGrid', 'false');
+        }
     }
 }
 
@@ -764,47 +805,49 @@ document.addEventListener('click', function(event) {
     }
 });
 
-function initializeEditor() {
-    editor = ace.edit("editor");
-    editor.setTheme("ace/theme/github_dark");
-    editor.session.setMode("ace/mode/json");
-    editor.setOptions({
-        fontSize: "14px",
-        showPrintMargin: true,
-        showGutter: true,
-        highlightActiveLine: true,
-        wrap: true
-    });
-    
-    // Forçar um resize inicial
-    setTimeout(() => editor.resize(), 100);
+// Adicionar funções para controlar o modal de opções
+function showOptionsModal() {
+    const modal = document.getElementById('options-modal');
+    if (modal) {
+        modal.classList.add('show');
+    }
 }
 
-// Aguardar o CONFIG ser carregado
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof CONFIG === 'undefined') {
-        console.error('Erro: CONFIG não encontrado. Verifique se config.js está carregado corretamente.');
-        return;
+function closeOptionsModal() {
+    const modal = document.getElementById('options-modal');
+    if (modal) {
+        modal.classList.remove('show');
     }
+}
 
-    // Inicialização do editor ACE
-    let editor = ace.edit("editor");
-    editor.setTheme(CONFIG.EDITOR.THEME);
-    editor.session.setMode(CONFIG.EDITOR.MODE);
-    editor.setOptions({
-        fontSize: CONFIG.EDITOR.FONT_SIZE,
-        ...CONFIG.EDITOR.OPTIONS
-    });
-
-    // ...rest of the code...
+// Fechar modal quando clicar fora
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('options-modal');
+    if (event.target === modal) {
+        closeOptionsModal();
+    }
 });
 
-// Move todas as definições de funções para fora do DOMContentLoaded
-function initializeEditor() {
-    // ...existing code...
+function handleCollapseToggle(isChecked) {
+    if (isChecked) {
+        collapseAll();
+    } else {
+        expandAll();
+    }
 }
 
-// ...rest of the functions...
+function toggleTheme() {
+    const isLight = document.getElementById('themeToggle').checked;
+    const theme = isLight ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Atualizar tema do editor
+    editor.setTheme(isLight ? 'ace/theme/chrome' : 'ace/theme/github_dark');
+    
+    // Re-renderizar o diagrama para atualizar as cores
+    updateVisualization(JSON.parse(editor.getValue()), false);
+}
 
 // Add this function near the top with other global variables
 function updateZoomLevel(scale) {
@@ -959,3 +1002,108 @@ async function initializeResizer() {
         resolve(true);
     });
 }
+
+// Definir função toggleTheme no escopo global
+window.toggleTheme = function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const isLight = themeToggle.checked;
+    const theme = isLight ? 'light' : 'dark';
+    
+    // Atualizar tema do documento
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Atualizar tema do editor
+    if (editor) {
+        editor.setTheme(isLight ? 'ace/theme/chrome' : 'ace/theme/github_dark');
+        editor.renderer.updateFull();
+    }
+    
+    // Re-renderizar o diagrama
+    try {
+        const content = editor.getValue();
+        if (content) {
+            updateVisualization(JSON.parse(content), false);
+        }
+    } catch (e) {
+        console.log("Erro ao atualizar visualização:", e);
+    }
+};
+
+// Atualizar setupEventListeners para incluir o tema
+function setupEventListeners() {
+    // Event listeners para pesquisa
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(searchDiagram, CONFIG.UI.DEBOUNCE_DELAY));
+        searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && searchResults.length > 0) {
+                event.preventDefault();
+                focusNextResult();
+            }
+        });
+    }
+
+    // Eventos para modais
+    window.showOptionsModal = function() {
+        const modal = document.getElementById('options-modal');
+        if (modal) modal.classList.add('show');
+    };
+
+    window.closeOptionsModal = function() {
+        const modal = document.getElementById('options-modal');
+        if (modal) modal.classList.remove('show');
+    };
+
+    // Fechar modal quando clicar fora ou pressionar ESC
+    document.addEventListener('click', function(event) {
+        const optionsModal = document.getElementById('options-modal');
+        if (optionsModal && event.target === optionsModal) {
+            closeOptionsModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeOptionsModal();
+        }
+    });
+
+    // Verificar primeira visita
+    if (!localStorage.getItem(CONFIG.STORAGE_KEYS.WELCOME_SHOWN)) {
+        showWelcomePopup();
+        localStorage.setItem(CONFIG.STORAGE_KEYS.WELCOME_SHOWN, 'true');
+    }
+
+    // Restaurar estado do grid
+    const showGrid = localStorage.getItem('showGrid');
+    if (showGrid !== null) {
+        const checkbox = document.getElementById('showGrid');
+        if (checkbox) {
+            checkbox.checked = showGrid === 'true';
+            toggleGrid();
+        }
+    }
+
+    // Restaurar estado do collapse
+    const collapseToggle = document.getElementById('collapseToggle');
+    if (collapseToggle) {
+        collapseToggle.checked = false; // Sempre começa expandido
+    }
+
+    // Restaurar tema
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.checked = savedTheme === 'light';
+            if (editor) {
+                editor.setTheme(savedTheme === 'light' ? 'ace/theme/chrome' : 'ace/theme/github_dark');
+                editor.renderer.updateFull();
+            }
+        }
+    }
+}
+
+// ...existing code...
