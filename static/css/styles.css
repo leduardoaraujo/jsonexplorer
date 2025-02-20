@@ -165,7 +165,6 @@ button:hover {
     pointer-events: all;
     position: relative;
     z-index: 3;
-    transition: all 0.3s ease-out;
 }
 
 .node-container {
@@ -225,7 +224,6 @@ button:hover {
     stroke: #4B5563;
     stroke-opacity: 0.4;
     fill: none;
-    transition: opacity 0.3s ease-out, d 0.3s ease-out;
 }
 
 /* Ajustes de zoom e interação */
@@ -391,13 +389,16 @@ mark.text-highlight {
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     padding: 0.5rem 2.5rem 0.5rem 1rem;
+    /* Aumentado padding direito para a seta */
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
     outline: none;
     transition: all 0.3s ease;
     min-width: 160px;
+    /* Aumentada largura mínima */
     max-width: 200px;
+    /* Adicionada largura máxima */
     width: 100%;
     appearance: none;
     -webkit-appearance: none;
@@ -405,6 +406,9 @@ mark.text-highlight {
     background-repeat: no-repeat;
     background-position: right 8px center;
     background-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .control-dropdown:hover {
@@ -419,7 +423,11 @@ mark.text-highlight {
 .control-dropdown option {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
-    padding: 8px;
+    padding: 8px 12px;
+    min-width: 100%;
+    white-space: normal;
+    /* Permite quebra de linha nas opções */
+    word-wrap: break-word;
 }
 
 .control-dropdown option:hover {
@@ -648,7 +656,6 @@ mark.text-highlight {
 .node {
     pointer-events: all;
     cursor: pointer;
-    transition: transform 0.3s ease-out;
 }
 
 svg {
@@ -705,20 +712,15 @@ svg g {
 }
 
 .settings-item {
-    padding: 1rem;
-    margin: 1rem 0;
-    background: var(--bg-primary);
-    border-radius: 8px;
+    padding: 8px;
 }
 
 .settings-label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
-    font-size: 14px;
-    color: var(--text-primary);
 }
 
 .settings-label input[type="checkbox"] {
@@ -729,17 +731,16 @@ svg g {
 .checkmark {
     position: relative;
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 2px solid var(--accent-color);
-    border-radius: 4px;
-    background: var(--bg-secondary);
+    border-radius: 3px;
 }
 
 .settings-label input:checked + .checkmark::after {
     content: '';
     position: absolute;
-    left: 6px;
+    left: 5px;
     top: 2px;
     width: 4px;
     height: 8px;
@@ -765,178 +766,4 @@ svg g {
 .current-result .node-card {
     border: 2px solid #FBA518 !important;
     box-shadow: 0 0 16px rgba(251, 165, 24, 0.4) !important;
-}
-
-/* Estilos para os atalhos de teclado */
-.shortcuts-info {
-    text-align: left;
-    margin: 1rem 0;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.shortcuts-info h3 {
-    margin-bottom: 0.5rem;
-    color: var(--accent-color);
-}
-
-.shortcuts-info ul {
-    list-style: none;
-    padding: 0;
-}
-
-.shortcuts-info li {
-    margin: 0.5rem 0;
-    color: var(--text-secondary);
-}
-
-kbd {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
-    padding: 2px 6px;
-    font-family: monospace;
-    font-size: 0.9em;
-    color: var(--accent-color);
-}
-
-/* Estilo para nodes focáveis */
-.node-header {
-    outline: none;
-}
-
-.node-header:focus {
-    box-shadow: 0 0 0 2px var(--accent-color);
-    border-radius: 4px;
-}
-
-/* Adicionar antes do final do arquivo */
-.control-divider,
-.icon-button.active svg,
-.icon-button svg {
-    display: inline-flex; /* Alterado de 'none' para 'inline-flex' */
-}
-
-.toggle-icon {
-    transition: transform 0.3s ease;
-}
-
-.toggle-icon.collapsed {
-    transform: rotate(-90deg);
-}
-
-.options-content {
-    max-width: 300px !important;
-}
-
-.options-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    margin: 1.5rem 0;
-}
-
-.options-grid button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.options-grid button:hover {
-    background-color: var(--accent-color);
-    transform: translateY(-2px);
-}
-
-.options-grid button svg {
-    width: 24px;
-    height: 24px;
-}
-
-.close-button {
-    width: 100%;
-    margin-top: 1rem;
-    padding: 0.8rem;
-    background-color: var(--border-color) !important;
-    color: var(--text-primary);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
-}
-
-.close-button:hover {
-    background-color: var(--accent-color) !important;
-}
-
-.collapse-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
-    background: var(--bg-secondary);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-}
-
-.switch-label {
-    color: var(--text-primary);
-    font-size: 13px;
-    user-select: none;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.switch-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--border-color);
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--text-primary);
-    transition: .4s;
-    border-radius: 50%;
-}
-
-.switch input:checked + .switch-slider {
-    background-color: var(--accent-color);
-}
-
-.switch input:checked + .switch-slider:before {
-    transform: translateX(20px);
-}
-
-.theme-controls {
-    display: none; /* Esconder controles de tema */
 }
