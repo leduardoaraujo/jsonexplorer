@@ -204,7 +204,7 @@ function createNodeContent(d) {
         content.push(`
             <div class="node-header">
                 <div class="toggle-icon" onclick="toggleNode('${d.data.name}')" 
-                    style="cursor: pointer; padding: 5px 10px; margin-right: 5px; display: inline-block;">
+                    style="cursor: pointer; padding: 10px 20px; margin-right: 5px; display: inline-block;">
                     ${isCollapsed ? '➕' : '➖'}
                 </div>
                 <span class="node-name">${d.data.name}</span>
@@ -654,96 +654,121 @@ function debounce(func, wait) {
 }
 
 function searchDiagram() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const resultCount = document.getElementById('resultCount');
     const nodes = d3.selectAll('.node');
-    let matchCount = 0;
+    
+    if (!searchTerm) {
+        nodes.classed('node-highlight', false)
+            .each(function(d) {
+                d3.select(this)
+                    .select('.node-card')
+                    .html(() => createNodeContent(d));
+            });
+        resultCount.textContent = '';
+        return;
+    }
+
+    let matches = 0;
     let firstMatch = null;
 
-    nodes.each(function (d) {
+    nodes.each(function(d) {
         const node = d3.select(this);
-        const nodeData = d.data;
-        const nodeCard = node.select('.node-card');
+        const searchString = (d.data.name + (d.data.value || '')).toLowerCase();
+        const isMatch = searchString.includes(searchTerm);
 
-        if (!searchTerm) {
-            node.classed('node-highlight', false);
-            nodeCard.html(d => createNodeContent(d));
-            return;
-        }
+        node.classed('node-highlight', isMatch);
 
-        const fullText = `${nodeData.name}:${nodeData.value || ''}`.toLowerCase();
-        const matchFound = fullText.includes(searchTerm);
-
-        node.classed('node-highlight', matchFound);
-
-        if (matchFound) {
-            matchCount++;
-            if (!firstMatch) firstMatch = node;
-
-            const nodeContent = nodeData.type === 'array' || nodeData.type === 'object' ?
-                `<div class="node-container">
-                    <div class="node-header">
-                        <span class="toggle-icon" onclick="toggleNode('${nodeData.name}')" 
-                            style="cursor: pointer; padding: 5px 10px; margin-right: 5px; display: inline-block;">
-                            ${collapsedNodes.has(nodeData.name) ? '➕' : '➖'}
-                        </span>
-                        <span class="node-name">${highlightText(nodeData.name, searchTerm)}</span>
-                        <span class="node-count">[${nodeData.children ? nodeData.children.length : 0}]</span>
-                    </div>
-                </div>` :
-                `<div class="node-container">
-                    <div class="node-content">
-                        <span class="node-key">${highlightText(nodeData.name, searchTerm)}:</span>
-                        <span class="${getValueClass(nodeData.type)}">${highlightText(formatValue(nodeData.value, nodeData.type), searchTerm)}</span>
-                    </div>
-                </div>`;
-
-            nodeCard.html(nodeContent);
+        if (isMatch) {
+            matches++;
+            if (!firstMatch) firstMatch = d;
+            
+            node.select('.node-card')
+                .html(() => createHighlightedNodeContent(d, searchTerm));
         } else {
-            nodeCard.html(() => createNodeContent(d));
+            node.select('.node-card')
+                .html(() => createNodeContent(d));
         }
     });
 
     // Atualizar contador de resultados
-    const resultCount = document.getElementById('resultCount');
-    if (searchTerm.length > 0) {
-        resultCount.textContent = `${matchCount} resultado${matchCount !== 1 ? 's' : ''} encontrado${matchCount !== 1 ? 's' : ''}`;
-        resultCount.style.opacity = '1';
+    resultCount.textContent = matches > 0 
+        ? `${matches} resultado${matches !== 1 ? 's' : ''} encontrado${matches !== 1 ? 's' : ''}`
+        : 'Nenhum resultado encontrado';
 
-        // Zoom no primeiro resultado encontrado
-        if (firstMatch) {
-            const transform = firstMatch.datum();
-            const scale = 1.5; // Nível de zoom
+    // Zoom para o primeiro resultado
+    if (firstMatch) {
+        const transform = d3.zoomIdentity
+            .translate(
+                svg.node().clientWidth / 2 - firstMatch.y,
+                svg.node().clientHeight / 2 - firstMatch.x
+            )
+            .scale(1.2);
 
-            const newTransform = d3.zoomIdentity
-                .translate(
-                    svg.node().clientWidth / 2 - transform.y,
-                    svg.node().clientHeight / 2 - transform.x
-                )
-                .scale(scale);
-
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform, newTransform);
-        }
-    } else {
-        resultCount.style.opacity = '0';
-        setTimeout(() => resultCount.textContent = '', 200);
-        // Resetar o zoom quando a pesquisa estiver vazia
-        resetZoom();
+        svg.transition()
+            .duration(500)
+            .call(zoom.transform, transform);
     }
 }
 
-// Nova função para destacar o texto procurado
+function createHighlightedNodeContent(d, searchTerm) {
+    const content = ['<div class="node-container">'];
+    
+    if (d.data.children || d._children) {
+        const isCollapsed = collapsedNodes.has(d.data.name);
+        const childCount = d._children ? d._children.length : (d.children ? d.children.length : 0);
+        
+        content.push(`
+            <div class="node-header">
+                <div class="toggle-icon" onclick="toggleNode('${d.data.name}')" 
+                    style="cursor: pointer; padding: 5px 10px; margin-right: 5px; display: inline-block;">
+                    ${isCollapsed ? '➕' : '➖'}
+                </div>
+                <span class="node-name">${highlightText(d.data.name, searchTerm)}</span>
+                <span class="node-count">[${childCount}]</span>
+            </div>
+        `);
+    } else {
+        content.push(`
+            <div class="node-content">
+                <span class="node-key">${highlightText(d.data.name, searchTerm)}:</span>
+                <span class="${getValueClass(d.data.type)}">${highlightText(formatValue(d.data.value, d.data.type), searchTerm)}</span>
+            </div>
+        `);
+    }
+
+    content.push('</div>');
+    return content.join('');
+}
+
 function highlightText(text, searchTerm) {
-    if (!searchTerm) return text;
+    if (!text) return '';
     const regex = new RegExp(`(${searchTerm})`, 'gi');
     return text.toString().replace(regex, '<span class="text-highlight">$1</span>');
 }
 
+// Atualizar event listener na inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing initialization code...
+    
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(searchDiagram, 300));
+        // Adicionar evento de tecla Enter
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchDiagram();
+            }
+        });
+    }
+    
+    // ...rest of initialization code...
+});
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function () {
     if (!localStorage.getItem('welcomeShown')) {
-        showWelcomePopup();
         localStorage.setItem('welcomeShown', 'true');
     }
 

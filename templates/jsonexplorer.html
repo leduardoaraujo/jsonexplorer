@@ -26,8 +26,8 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
-                </button>                
-                <h3>JSON Explorer</h3>
+                </button>      
+                          
                 <div class="editor-controls">
                     <select class="control-dropdown" onchange="handleEditorAction(this.value)">
                         <option value="" disabled selected>Escolha uma ação</option>
@@ -61,10 +61,12 @@
         <div class="right-panel">
             <div class="visualizer-header">
                 <div class="search-container">
-                    <input type="text" id="searchInput" placeholder="Pesquisar no diagrama..." autocomplete="off">
-                    <div class="search-results">
-                        <span id="resultCount"></span>
-                    </div>
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Pesquisar no diagrama..." 
+                           autocomplete="off">
+                    <div id="resultCount" class="search-results"></div>
                 </div>
                 <div class="visualizer-controls">
                     <label class="switch-container" title="Colapsar/Expandir todos os nós">
@@ -102,9 +104,9 @@
                         <span id="zoomLevel">100%</span>
                         <div class="divider"></div>
                     </div>
-                    <button class="action-button" onclick="saveDiagram()" title="Salvar como SVG">
+                    <!-- <button class="action-button" onclick="saveDiagram()" title="Salvar como SVG">
                         Salvar SVG
-                    </button>
+                    </button> -->
                 </div>
             </div>
             <div id="visualizer"></div>

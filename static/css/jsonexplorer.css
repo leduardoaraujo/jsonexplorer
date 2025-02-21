@@ -394,10 +394,9 @@ button:hover {
 
 /* Estilos atualizados da barra de pesquisa */
 .search-container {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 300px;
+    position: relative;
+    min-width: 200px;
+    margin-right: auto;
 }
 
 #searchInput {
@@ -418,6 +417,10 @@ button:hover {
 }
 
 .search-results {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 4px;
     color: var(--text-secondary);
     font-size: 12px;
     padding: 2px 0;
@@ -436,10 +439,52 @@ button:hover {
 
 /* Novo estilo para texto destacado */
 .text-highlight {
+    background-color: rgba(251, 165, 24, 0.2);
     color: #FBA518;
-    font-weight: bold;
-    background-color: rgba(251, 165, 24, 0.1);
+    padding: 0 2px;
     border-radius: 2px;
+    font-weight: 500;
+}
+
+.text-highlight {
+    background-color: rgba(96, 165, 250, 0.3);
+    color: #60A5FA;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+.node-highlight {
+    filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.5));
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+}
+
+.search-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+#resultCount {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.2s;
 }
 
 /* Estilos para lista de propriedades */
@@ -882,6 +927,7 @@ svg g {
     color: white;
     text-decoration: none;
     transition: background-color 0.2s;
+    background-color: var(--bg-primary);
 }
 
 .back-button:hover {
