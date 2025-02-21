@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/static/img/favicon.png" type="image/png">
     <title>Editor | 🌎JSON Explorer</title>
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
@@ -72,9 +71,10 @@
                             </svg>
                         </button>
                         <button class="icon-button" onclick="resetZoom()" title="Redefinir">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 12a9 9 0 1 1-9-9" stroke-linecap="round"></path>
-                                <path d="M12 3v4l3-3H12" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 12a9 9 0 11-9-9 9 9 0 019 9z"></path>
+                                <path d="M12 8v4l2.5 2.5"></path>
                             </svg>
                         </button>
                         <button class="icon-button" onclick="fitContent()" title="Ajustar">
@@ -101,19 +101,9 @@
         <div class="modal-content">
             <h2>Bem-vindo ao JSON Explorer!</h2>
             <p>Uma ferramenta simples para explorar e manipular arquivos JSON.</p>
-            <div class="shortcuts-info">
-                <h3>Atalhos de Teclado:</h3>
-                <ul>
-                    <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> - Colapsar todos os nodes</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> - Expandir todos os nodes</li>
-                    <li><kbd>Espaço</kbd> - Colapsar/Expandir node selecionado</li>
-                </ul>
-            </div>
             <button onclick="closeWelcomePopup()">Fechar</button>
         </div>
     </div>
-    <!-- Carregar scripts na ordem correta -->
-    <script src="/static/js/config.js"></script>
     <script src="/static/js/script.js"></script>
 </body>
 

@@ -38,7 +38,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: width 0.05s ease;
+    transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
     z-index: 10;
 }
@@ -144,7 +144,6 @@ button:hover {
         linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
-    transition: background-image 0.3s ease;
 }
 
 .node-card {
@@ -355,19 +354,10 @@ button:hover {
 
 /* Novo estilo para texto destacado */
 .text-highlight {
-    color: inherit;
-    background-color: rgba(251, 165, 24, 0.3);
-    padding: 0 2px;
-    border-radius: 2px;
+    color: #FBA518;
     font-weight: bold;
-}
-
-mark.text-highlight {
-    color: inherit;
-    background-color: rgba(251, 165, 24, 0.3);
-    padding: 0 2px;
+    background-color: rgba(251, 165, 24, 0.1);
     border-radius: 2px;
-    font-weight: bold;
 }
 
 /* Estilos para lista de propriedades */
@@ -616,18 +606,16 @@ mark.text-highlight {
     background-color: var(--border-color);
     cursor: col-resize;
     height: 100%;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
     position: relative;
     z-index: 11;
-    opacity: 0.3;
-    margin: 0 -4px;
+    opacity: 0.5;
 }
 
 .resizer:hover,
 .resizer.active {
     opacity: 1;
     background-color: var(--accent-color);
-    width: 8px;
 }
 
 .resizer::after {
@@ -760,10 +748,4 @@ svg g {
 .settings-wrapper {
     position: relative;
     display: inline-block;
-}
-
-/* Destaque especial para o resultado atual */
-.current-result .node-card {
-    border: 2px solid #FBA518 !important;
-    box-shadow: 0 0 16px rgba(251, 165, 24, 0.4) !important;
 }
