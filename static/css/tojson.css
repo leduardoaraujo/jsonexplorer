@@ -1,0 +1,175 @@
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #111111;
+    --bg-editor: #1a1a1a;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --accent-color: #3b82f6;
+    --border-color: #222222;
+    --success-color: #10B981;
+    --error-color: #EF4444;
+    --header-height: 60px;
+}
+
+/* Reset e estilos base */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+}
+
+/* Container principal */
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    position: relative;
+}
+
+.editor-container {
+    flex: 1;
+    position: relative;
+    transition: flex 0.3s ease;
+}
+
+.editor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+/* Painel de controles central */
+.controls-panel {
+    position: fixed;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.controls-panel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Botões */
+button {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+button:hover {
+    background: rgba(60, 112, 224, 0.955);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+    background: rgba(60, 224, 167, 0.955);
+}
+
+button svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}
+
+/* Notificações */
+.notifications {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1001;
+}
+
+.error, .success {
+    margin-bottom: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    animation: slideIn 0.3s ease;
+    display: none;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+/* Animações */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .controls-panel {
+        flex-direction: column;
+        width: calc(100% - 2rem);
+        bottom: 1rem;
+        gap: 0.5rem;
+    }
+    
+    button {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

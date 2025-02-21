@@ -1,110 +1,72 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor | 🌎JSON Explorer</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.js"></script>
+    <title>Dev Tools Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-bottom: 40px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #1a73e8;
+            margin-top: 0;
+        }
+
+        .card p {
+            color: #5f6368;
+        }
+    </style>
 </head>
-
 <body>
+    <h1>Dev Tools Portal</h1>
     <div class="container">
-        <div class="left-panel">
-            <div class="editor-header">
-                <h3>JSON Explorer</h3>
-                <div class="editor-controls">
-                    <select class="control-dropdown" onchange="handleEditorAction(this.value)">
-                        <option value="" disabled selected>Escolha uma ação</option>
-                        <option value="format">Formatar JSON</option>
-                        <option value="clear">Limpar Editor</option>
-                        <option value="collapseAll">Colapsar Tudo</option>
-                        <option value="expandAll">Expandir Tudo</option>
-                    </select>
-                    <div class="settings-wrapper">
-                        <button class="icon-button settings-button" onclick="toggleSettings()" title="Configurações">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </button>
-                        <div id="settings-menu" class="settings-menu">
-                            <div class="settings-item">
-                                <label class="settings-label">
-                                    <input type="checkbox" id="showGrid" checked onchange="toggleGrid()">
-                                    <span class="checkmark"></span>
-                                    Mostrar Grid
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="editor-container">
-                <div id="editor"></div>
-            </div>
-        </div>
-        <div class="resizer"></div>
-        <div class="right-panel">
-            <div class="visualizer-header">
-                <div class="search-container">
-                    <input type="text" id="searchInput" placeholder="Pesquisar no diagrama..." autocomplete="off">
-                    <div class="search-results">
-                        <span id="resultCount"></span>
-                    </div>
-                </div>
-                <div class="visualizer-controls">
-                    <div class="zoom-controls">
-                        <button class="icon-button" onclick="zoomIn()" title="Aumentar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="zoomOut()" title="Diminuir">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="resetZoom()" title="Redefinir">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M21 12a9 9 0 11-9-9 9 9 0 019 9z"></path>
-                                <path d="M12 8v4l2.5 2.5"></path>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="fitContent()" title="Ajustar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
-                            </svg>
-                        </button>
-                        <span id="zoomLevel">100%</span>
-                    </div>
-                    <button class="action-button" onclick="saveDiagram()" title="Salvar como SVG">
-                        Salvar SVG
-                    </button>
-                </div>
-            </div>
-            <div id="visualizer"></div>
-            <div id="loading-indicator" class="loading-indicator hidden">
-                <div class="spinner"></div>
-                <span>Carregando nós...</span>
-            </div>
-        </div>
+        <a href="/jsonexplorer" class="card">
+            <h2>JSON Explorer</h2>
+            <p>Explore e analise estruturas JSON de forma intuitiva e eficiente.</p>
+        </a>
+        <a href="/markdown" class="card">
+            <h2>Markdown Viewer</h2>
+            <p>Visualize e edite arquivos Markdown com preview em tempo real.</p>
+        </a>
+        <a href="/tojson" class="card">
+            <h2>ToJSON Converter</h2>
+            <p>Converta diferentes formatos de dados para JSON facilmente.</p>
+        </a>
     </div>
-    <div id="welcome-modal" class="modal">
-        <div class="modal-content">
-            <h2>Bem-vindo ao JSON Explorer!</h2>
-            <p>Uma ferramenta simples para explorar e manipular arquivos JSON.</p>
-            <button onclick="closeWelcomePopup()">Fechar</button>
-        </div>
-    </div>
-    <script src="/static/js/script.js"></script>
 </body>
-
 </html>

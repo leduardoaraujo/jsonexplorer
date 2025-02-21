@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON ⟷ Markdown</title>
+    <link rel="stylesheet" href="/static/css/tojson.css">
+</head>
+<body>
+    <div class="container">
+        <div class="editor-container">
+            <div id="jsonEditor" class="editor"></div>
+        </div>
+        <div class="editor-container">
+            <div id="markdownEditor" class="editor"></div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <button type="button" class="back-button" title="Voltar ao Portal" onclick="window.location.href='/'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </button>        
+        <button onclick="convertToMarkdown()">
+            <span>JSON → Markdown</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </button>
+        <button onclick="formatJson()">
+            <span>Formatar JSON</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10H3M21 6H3M21 14H3M21 18H3"/>
+            </svg>
+        </button>
+        <button onclick="copyMarkdown()">
+            <span>Copiar Markdown</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="notifications">
+        <div id="jsonError" class="error"></div>
+        <div id="jsonSuccess" class="success"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-json.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-github_dark.js"></script>
+    <script src="/static/js/tojson.js"></script>
+</body>
+</html>

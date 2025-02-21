@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer</title>
+    <link rel="stylesheet" href="/static/css/markdown-viewer.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-pane">
+            <div id="markdownEditor" class="editor"></div>
+        </div>
+        <div class="preview-pane">
+            <div id="preview" class="markdown-body"></div>
+        </div>
+    </div>
+    <div class="controls-panel">
+        <button onclick="updatePreview()">
+            <span>Atualizar Preview</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 5l7 7-7 7M3 12h18"/>
+            </svg>
+        </button>
+        <button onclick="copyHtml()">
+            <span>Copiar HTML</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="notifications">
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.js"></script>
+    <script src="/static/js/markdown-viewer.js"></script>
+</body>
+</html>

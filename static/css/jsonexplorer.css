@@ -1,3 +1,85 @@
+/**
+ * ESTRUTURA E ORGANIZAÇÃO DO CSS
+ * 
+ * 1. Variáveis e Configurações Globais
+ *    - Definição de cores do tema escuro
+ *    - Variáveis CSS para reutilização
+ * 
+ * 2. Reset e Estilos Base
+ *    - Reset de margens e padding
+ *    - Configurações básicas de fonte e cores
+ * 
+ * 3. Layout Principal
+ *    - Container principal com flexbox
+ *    - Painéis esquerdo e direito
+ *    - Sistema de redimensionamento
+ * 
+ * 4. Componentes do Editor
+ *    - Cabeçalho do editor
+ *    - Área de edição ACE
+ *    - Controles e botões
+ * 
+ * 5. Componentes do Visualizador
+ *    - Área SVG do D3.js
+ *    - Grid de background
+ *    - Controles de zoom
+ * 
+ * 6. Nós e Conexões
+ *    - Estilos dos cards de nós
+ *    - Conexões entre nós
+ *    - Estados de hover e seleção
+ * 
+ * 7. Elementos de Interface
+ *    - Botões e controles
+ *    - Dropdowns e menus
+ *    - Switches e checkboxes
+ * 
+ * 8. Modal e Overlays
+ *    - Modal de boas-vindas
+ *    - Indicador de carregamento
+ *    - Animações de transição
+ * 
+ * 9. Utilidades e Helpers
+ *    - Classes de animação
+ *    - Espaçamentos e margens
+ *    - Estados e modificadores
+ * 
+ * ELEMENTOS DUPLICADOS (A serem otimizados):
+ * 
+ * 1. Cabeçalhos (.editor-header, .visualizer-header)
+ *    - Mesmas propriedades de padding e border
+ *    - Podem ser unificados com classe compartilhada
+ * 
+ * 2. Grid e Padrões
+ *    - Propriedades de grid duplicadas
+ *    - Podem ser consolidadas em uma única definição
+ * 
+ * 3. Estilos de Hover
+ *    - Repetição de propriedades em :hover
+ *    - Podem usar uma classe utilitária
+ * 
+ * 4. Transições
+ *    - Várias definições similares de transition
+ *    - Podem ser padronizadas
+ * 
+ * RECOMENDAÇÕES DE MANUTENÇÃO:
+ * 
+ * 1. Organização
+ *    - Agrupar estilos relacionados
+ *    - Usar comentários para separar seções
+ *    - Manter ordem consistente de propriedades
+ * 
+ * 2. Otimização
+ *    - Consolidar estilos duplicados
+ *    - Criar classes utilitárias
+ *    - Usar herança quando possível
+ * 
+ * 3. Performance
+ *    - Minimizar uso de seletores complexos
+ *    - Priorizar propriedades GPU-accelerated
+ *    - Usar will-change com moderação
+ */
+
 :root {
     --bg-primary: #121212;
     --bg-secondary: #1e1e1e;
@@ -38,7 +120,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.05s ease; /* Reduzido tempo e alterado easing */
     flex-shrink: 0;
     z-index: 10;
 }
@@ -576,17 +658,6 @@ button:hover {
     z-index: 1;
 }
 
-.editor-panel {
-    min-width: 200px;
-    max-width: 80%;
-    width: 40%;
-    height: 100vh;
-    background-color: var(--bg-secondary);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 /* Estilos para o redimensionamento */
 .resizer-bar {
     width: 4px;
@@ -606,10 +677,12 @@ button:hover {
     background-color: var(--border-color);
     cursor: col-resize;
     height: 100%;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.1s ease; /* Reduzido tempo de transição */
     position: relative;
     z-index: 11;
     opacity: 0.5;
+    touch-action: none; /* Melhora o desempenho em dispositivos touch */
+    will-change: background-color; /* Otimiza a renderização */
 }
 
 .resizer:hover,
@@ -653,19 +726,6 @@ svg {
 svg g {
     z-index: 2;
     position: relative;
-}
-
-.grid {
-    stroke: var(--border-color);
-    stroke-opacity: 0.05;
-    shape-rendering: crispEdges;
-    z-index: 1;
-}
-
-.grid-pattern {
-    fill: none;
-    stroke: var(--border-color);
-    stroke-opacity: 0.05;
 }
 
 /* Estilos do Grid */
@@ -748,4 +808,86 @@ svg g {
 .settings-wrapper {
     position: relative;
     display: inline-block;
+}
+
+/* Estilo do divisor */
+.divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--border-color);
+    margin: 0 8px;
+}
+
+/* Estilos do Switch */
+.switch-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.switch-container input {
+    display: none;
+}
+
+.switch-slider {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background-color: var(--border-color);
+    border-radius: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--text-primary);
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s ease;
+}
+
+.switch-container input:checked + .switch-slider {
+    background-color: var(--accent-color);
+}
+
+.switch-container input:checked + .switch-slider::before {
+    transform: translateX(16px);
+}
+
+.switch-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+/* Estilos para o novo botão e o container que agrupa o botão com o título */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.back-button:hover {
+    background-color: var(--border-color);
+}
+
+.back-button svg {
+    display: block;
 }

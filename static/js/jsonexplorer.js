@@ -1,4 +1,11 @@
-// Constantes
+/**
+ * Constantes globais para configuração da aplicação
+ * ZOOM_SCALE: Fator de ampliação/redução do zoom
+ * ZOOM_DURATION: Duração das animações de zoom em milissegundos
+ * DEBOUNCE_DELAY: Atraso para atualização do diagrama após mudanças no editor
+ * NODE_BASE_HEIGHT: Altura mínima dos nós no diagrama
+ * NODE_MIN_WIDTH: Largura mínima dos nós no diagrama
+ */
 const ZOOM_SCALE = 1.3;
 const ZOOM_DURATION = 300;
 const DEBOUNCE_DELAY = 300;
@@ -7,19 +14,29 @@ const NODE_MIN_WIDTH = 180;
 const DEFAULT_FONT = 'Monaco, Menlo, Ubuntu Mono, monospace';
 const DEFAULT_FONT_SIZE = '13px';
 
-// Inicialização do editor ACE
+/**
+ * Inicialização do editor ACE
+ * - Configura o tema dark do GitHub
+ * - Define o modo como JSON
+ * - Configura opções básicas do editor
+ */
 let editor = ace.edit("editor");
 editor.setTheme("ace/theme/github_dark");
 editor.session.setMode("ace/mode/json");
 editor.setOptions({
-    fontSize: DEFAULT_FONT_SIZE,
-    showPrintMargin: true,
+    fontSize: 14,
+    showPrintMargin: false,
     showGutter: true,
     highlightActiveLine: true,
     wrap: true
 });
 
-// Setup D3
+/**
+ * Configuração do D3.js para visualização
+ * - Cria o elemento SVG principal
+ * - Configura o padrão de grid
+ * - Inicializa o sistema de zoom
+ */
 let svg = d3.select("#visualizer")
     .append("svg")
     .attr("width", "100%")
@@ -47,7 +64,12 @@ let g = svg.append("g");
 let zoom = d3.zoom().on("zoom", (event) => g.attr("transform", event.transform));
 svg.call(zoom);
 
-// Mapa global para armazenar estados dos nós
+/**
+ * Estruturas de dados globais
+ * collapsedNodes: Mantém registro dos nós colapsados
+ * measurementCache: Cache para otimizar cálculos de dimensões
+ * currentZoom: Mantém o nível atual de zoom
+ */
 let collapsedNodes = new Map();
 
 // Cache para medições de texto
@@ -77,7 +99,17 @@ editor.getSession().on('change', debounce(() => {
     }
 }, DEBOUNCE_DELAY));
 
-// Funções principais
+/**
+ * updateVisualization(data, shouldAnimate)
+ * Função principal que atualiza o diagrama visual
+ * @param {Object} data - Dados JSON a serem visualizados
+ * @param {boolean} shouldAnimate - Se deve animar a transição
+ * 
+ * - Limpa o diagrama existente
+ * - Transforma os dados em estrutura hierárquica
+ * - Cria os nós e links do diagrama
+ * - Aplica layout em árvore
+ */
 function updateVisualization(data, shouldAnimate = true) {
     g.selectAll("*").remove();
     measurementCache.clear();
@@ -125,6 +157,13 @@ function updateVisualization(data, shouldAnimate = true) {
     if (shouldAnimate) fitContent();
 }
 
+/**
+ * transformData(data, key)
+ * Converte dados JSON em estrutura hierárquica para o D3
+ * @param {any} data - Dados a serem transformados
+ * @param {string} key - Chave/nome do nó atual
+ * @returns {Object} Estrutura de dados hierárquica
+ */
 function transformData(data, key = "root") {
     if (data === null) return { name: key, type: "null", value: "null" };
 
@@ -142,6 +181,17 @@ function transformData(data, key = "root") {
     }
 
     return { name: key, type: type, value: String(data) };
+}
+
+//switch de collapse
+function handleCollapseToggle(isChecked) {
+    if (isChecked) {
+        collapseAll();
+        resetZoom();
+    } else {
+        expandAll();
+        fitContent();
+    }
 }
 
 function createNodeContent(d) {
@@ -226,7 +276,12 @@ function getNodeHeight(d) {
     return height;
 }
 
-// Ações do usuário
+/**
+ * Funções de manipulação de nós
+ * - toggleNode: Alterna estado de um nó entre expandido/colapsado
+ * - collapseAll: Colapsa todos os nós do diagrama
+ * - expandAll: Expande todos os nós do diagrama
+ */
 function toggleNode(nodeName) {
     collapsedNodes.has(nodeName) ?
         collapsedNodes.delete(nodeName) :
@@ -339,7 +394,13 @@ function visualizeJSON() {
     }
 }
 
-// Função para formatar valores
+/**
+ * Funções de utilidade
+ * - formatValue: Formata valores para exibição
+ * - getNodeWidth: Calcula largura dos nós
+ * - getNodeHeight: Calcula altura dos nós
+ * - debounce: Limita frequência de chamadas de função
+ */
 function formatValue(value, type) {
     switch (type) {
         case 'string':
@@ -368,7 +429,13 @@ function getValueClass(type) {
     }
 }
 
-// Controles de zoom
+/**
+ * Funções de controle de zoom
+ * - zoomIn: Aumenta o zoom
+ * - zoomOut: Diminui o zoom
+ * - resetZoom: Reseta zoom focando no nó raiz
+ * - fitContent: Ajusta zoom para mostrar todo o conteúdo
+ */
 function zoomIn() {
     svg.transition()
         .duration(ZOOM_DURATION)
@@ -384,10 +451,24 @@ function zoomOut() {
 }
 
 function resetZoom() {
+    // Encontrar o nó raiz (primeiro nó do diagrama)
+    const rootNode = d3.select('.node').datum();
+    if (!rootNode) return;
+
+    const scale = 1.2; // Escala um pouco maior para melhor visualização
+    const parent = svg.node().getBoundingClientRect();
+    
+    const transform = d3.zoomIdentity
+        .translate(
+            parent.width / 2 - rootNode.y,
+            parent.height / 2 - rootNode.x
+        )
+        .scale(scale);
+
     svg.transition()
         .duration(ZOOM_DURATION)
-        .call(zoom.transform, d3.zoomIdentity)
-        .on("end", () => updateZoomLevel(1));
+        .call(zoom.transform, transform)
+        .on("end", () => updateZoomLevel(scale));
 }
 
 function fitContent() {
@@ -420,15 +501,156 @@ zoom.on("zoom", (event) => {
     updateZoomLevel(event.transform.k);
 });
 
-// Funções do modal de boas-vindas
-function showWelcomePopup() {
-    const modal = document.getElementById('welcome-modal');
-    modal.classList.add('show');
+/**
+ * Funções de interação
+ * - handleEditorAction: Processa ações do editor
+ * - searchDiagram: Implementa busca no diagrama
+ * - highlightText: Destaca texto encontrado na busca
+ * - initializeResizer: Configura redimensionamento de painéis
+ */
+function handleEditorAction(action) {
+    if (!action) return;
+
+    switch (action) {
+        case 'format':
+            formatJSON();
+            break;
+        case 'clear':
+            clearEditor();
+            break;
+        case 'collapseAll':
+            collapseAll();
+            break;
+        case 'expandAll':
+            expandAll();
+            break;
+    }
+
+    // Reset dropdown
+    event.target.value = '';
 }
 
-function closeWelcomePopup() {
-    const modal = document.getElementById('welcome-modal');
-    modal.classList.remove('show');
+function initializeResizer() {
+    const leftPanel = document.querySelector('.left-panel');
+    const resizer = document.querySelector('.resizer');
+    const container = document.querySelector('.container');
+
+    let isResizing = false;
+    let startX, startWidth;
+
+    // Usar requestAnimationFrame para melhor performance
+    let animationFrameId = null;
+
+    function onMouseMove(e) {
+        if (!isResizing) return;
+
+        // Cancelar frame anterior se existir
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        // Agendar próxima atualização
+        animationFrameId = requestAnimationFrame(() => {
+            const dx = e.pageX - startX;
+            const newWidth = startWidth + dx;
+            const containerWidth = container.offsetWidth;
+
+            if (newWidth >= 200 && newWidth <= containerWidth * 0.8) {
+                leftPanel.style.width = `${newWidth}px`;
+                if (editor) editor.resize();
+            }
+        });
+    }
+
+    function onMouseUp() {
+        if (!isResizing) return;
+        
+        isResizing = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        resizer.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+    }
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.pageX;
+        startWidth = leftPanel.offsetWidth;
+
+        resizer.classList.add('active');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+}
+
+/**
+ * Funções de inicialização e configuração
+ * - loadDefaultJSON: Carrega JSON inicial
+ * - toggleSettings: Controla menu de configurações
+ * - toggleGrid: Controla visibilidade do grid
+ */
+// Funções para o menu de configurações
+function toggleSettings() {
+    const menu = document.getElementById('settings-menu');
+    const button = document.querySelector('.settings-button');
+    menu.classList.toggle('show');
+    button.classList.toggle('active');
+}
+
+function toggleGrid() {
+    const visualizer = document.getElementById('visualizer');
+    const checkbox = document.getElementById('showGrid');
+    
+    if (checkbox.checked) {
+        visualizer.style.backgroundImage = `
+            linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px)
+        `;
+        visualizer.style.backgroundSize = '20px 20px';
+    } else {
+        visualizer.style.backgroundImage = 'none';
+        visualizer.style.backgroundSize = '0';
+    }
+}
+
+// Fechar menu quando clicar fora
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('settings-menu');
+    const button = document.querySelector('.settings-button');
+    
+    if (!menu.contains(event.target) && !button.contains(event.target)) {
+        menu.classList.remove('show');
+        button.classList.remove('active');
+    }
+});
+
+/**
+ * Event Listeners
+ * - Inicialização do DOM
+ * - Manipulação de cliques fora do menu
+ * - Eventos de redimensionamento
+ * - Eventos de zoom
+ */
+
+// Função auxiliar para debounce
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 function searchDiagram() {
@@ -535,92 +757,6 @@ document.addEventListener('DOMContentLoaded', function () {
     loadDefaultJSON();
 });
 
-// Função auxiliar para debounce
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-function handleEditorAction(action) {
-    if (!action) return;
-
-    switch (action) {
-        case 'format':
-            formatJSON();
-            break;
-        case 'clear':
-            clearEditor();
-            break;
-        case 'collapseAll':
-            collapseAll();
-            break;
-        case 'expandAll':
-            expandAll();
-            break;
-    }
-
-    // Reset dropdown
-    event.target.value = '';
-}
-
-function initializeResizer() {
-    const leftPanel = document.querySelector('.left-panel');
-    const resizer = document.querySelector('.resizer');
-    const container = document.querySelector('.container');
-
-    let isResizing = false;
-    let startX, startWidth;
-
-    resizer.addEventListener('mousedown', (e) => {
-        isResizing = true;
-        startX = e.pageX;
-        startWidth = leftPanel.offsetWidth;
-
-        resizer.classList.add('active');
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-
-        const dx = e.pageX - startX;
-        const newWidth = startWidth + dx;
-        const containerWidth = container.offsetWidth;
-
-        // Limitar o redimensionamento com animação suave
-        if (newWidth >= 200 && newWidth <= containerWidth * 0.8) {
-            leftPanel.style.width = `${newWidth}px`;
-
-            // Atualizar o editor sem redimensionar o SVG
-            if (editor) {
-                editor.resize();
-            }
-        }
-    });
-
-    document.addEventListener('mouseup', () => {
-        if (isResizing) {
-            isResizing = false;
-            resizer.classList.remove('active');
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-
-            // Apenas atualizar o editor, sem interferir no zoom
-            if (editor) {
-                editor.resize();
-            }
-        }
-    });
-}
-
 // Função para carregar o JSON padrão
 async function loadDefaultJSON() {
     try {
@@ -632,38 +768,3 @@ async function loadDefaultJSON() {
         console.error('Erro ao carregar JSON padrão:', error);
     }
 }
-
-// Funções para o menu de configurações
-function toggleSettings() {
-    const menu = document.getElementById('settings-menu');
-    const button = document.querySelector('.settings-button');
-    menu.classList.toggle('show');
-    button.classList.toggle('active');
-}
-
-function toggleGrid() {
-    const visualizer = document.getElementById('visualizer');
-    const checkbox = document.getElementById('showGrid');
-    
-    if (checkbox.checked) {
-        visualizer.style.backgroundImage = `
-            linear-gradient(to right, rgba(51, 51, 51, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(51, 51, 51, 0.1) 1px, transparent 1px)
-        `;
-        visualizer.style.backgroundSize = '20px 20px';
-    } else {
-        visualizer.style.backgroundImage = 'none';
-        visualizer.style.backgroundSize = '0';
-    }
-}
-
-// Fechar menu quando clicar fora
-document.addEventListener('click', function(event) {
-    const menu = document.getElementById('settings-menu');
-    const button = document.querySelector('.settings-button');
-    
-    if (!menu.contains(event.target) && !button.contains(event.target)) {
-        menu.classList.remove('show');
-        button.classList.remove('active');
-    }
-});
