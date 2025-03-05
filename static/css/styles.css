@@ -1,85 +1,3 @@
-/**
- * ESTRUTURA E ORGANIZAÇÃO DO CSS
- * 
- * 1. Variáveis e Configurações Globais
- *    - Definição de cores do tema escuro
- *    - Variáveis CSS para reutilização
- * 
- * 2. Reset e Estilos Base
- *    - Reset de margens e padding
- *    - Configurações básicas de fonte e cores
- * 
- * 3. Layout Principal
- *    - Container principal com flexbox
- *    - Painéis esquerdo e direito
- *    - Sistema de redimensionamento
- * 
- * 4. Componentes do Editor
- *    - Cabeçalho do editor
- *    - Área de edição ACE
- *    - Controles e botões
- * 
- * 5. Componentes do Visualizador
- *    - Área SVG do D3.js
- *    - Grid de background
- *    - Controles de zoom
- * 
- * 6. Nós e Conexões
- *    - Estilos dos cards de nós
- *    - Conexões entre nós
- *    - Estados de hover e seleção
- * 
- * 7. Elementos de Interface
- *    - Botões e controles
- *    - Dropdowns e menus
- *    - Switches e checkboxes
- * 
- * 8. Modal e Overlays
- *    - Modal de boas-vindas
- *    - Indicador de carregamento
- *    - Animações de transição
- * 
- * 9. Utilidades e Helpers
- *    - Classes de animação
- *    - Espaçamentos e margens
- *    - Estados e modificadores
- * 
- * ELEMENTOS DUPLICADOS (A serem otimizados):
- * 
- * 1. Cabeçalhos (.editor-header, .visualizer-header)
- *    - Mesmas propriedades de padding e border
- *    - Podem ser unificados com classe compartilhada
- * 
- * 2. Grid e Padrões
- *    - Propriedades de grid duplicadas
- *    - Podem ser consolidadas em uma única definição
- * 
- * 3. Estilos de Hover
- *    - Repetição de propriedades em :hover
- *    - Podem usar uma classe utilitária
- * 
- * 4. Transições
- *    - Várias definições similares de transition
- *    - Podem ser padronizadas
- * 
- * RECOMENDAÇÕES DE MANUTENÇÃO:
- * 
- * 1. Organização
- *    - Agrupar estilos relacionados
- *    - Usar comentários para separar seções
- *    - Manter ordem consistente de propriedades
- * 
- * 2. Otimização
- *    - Consolidar estilos duplicados
- *    - Criar classes utilitárias
- *    - Usar herança quando possível
- * 
- * 3. Performance
- *    - Minimizar uso de seletores complexos
- *    - Priorizar propriedades GPU-accelerated
- *    - Usar will-change com moderação
- */
-
 :root {
     --bg-primary: #121212;
     --bg-secondary: #1e1e1e;
@@ -162,22 +80,32 @@ body {
     align-items: center;
 }
 
+/* Update visualizer header layout for better spacing with the import button */
 .visualizer-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center; /* Changed from flex-start for better vertical alignment */
     gap: 1rem;
     position: relative;
     z-index: 10;
     background-color: var(--bg-primary);
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .editor-controls,
 .visualizer-controls {
     display: flex;
     gap: 0.5rem;
+}
+
+/* Make visualizer controls shrink last on smaller screens */
+.visualizer-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0; /* Prevent shrinking of controls */
+    margin-left: auto; /* Push to the right */
 }
 
 button {
@@ -396,7 +324,9 @@ button:hover {
 .search-container {
     position: relative;
     min-width: 200px;
-    margin-right: auto;
+    max-width: 400px; /* Added max-width to prevent too wide search bar */
+    flex: 1; /* Allow it to grow but respect other elements */
+    margin-right: 0; /* Remove auto margin */
 }
 
 #searchInput {
@@ -910,8 +840,6 @@ svg g {
     color: var(--text-secondary);
     user-select: none;
 }
-
-/* Estilos para o novo botão e o container que agrupa o botão com o título */
 .header-left {
     display: flex;
     align-items: center;
@@ -936,4 +864,194 @@ svg g {
 
 .back-button svg {
     display: block;
+}
+
+/* Add styles for the import button */
+.control-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #2d3748;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.control-button:hover {
+    background-color: #4a5568;
+}
+
+.control-button:active {
+    transform: translateY(1px);
+}
+
+.import-button {
+    background-color: #3182ce;
+}
+
+.import-button:hover {
+    background-color: #2c5282;
+}
+
+/* Styles for file upload progress and feedback */
+.file-feedback {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #2d3748;
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.file-feedback.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.file-feedback.success {
+    background-color: #047857;
+}
+
+.file-feedback.error {
+    background-color: #b91c1c;
+}
+
+.file-feedback.info {
+    background-color: #1e40af;
+}
+
+.file-feedback-icon {
+    display: flex;
+    align-items: center;
+}
+
+.file-feedback-message {
+    font-size: 14px;
+}
+
+/* Add import container styles */
+.import-container {
+    display: flex;
+    align-items: center;
+}
+
+/* Add styles for drag and drop visual feedback */
+#visualizer.drag-over,
+#editor.drag-over {
+    border: 2px dashed var(--accent-color);
+    box-shadow: inset 0 0 0 2px var(--bg-primary);
+    opacity: 0.8;
+}
+
+/* Add styles for the import trigger button */
+.import-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    background-color: var(--accent-color);
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.import-trigger:hover {
+    background-color: #4a91f7;
+}
+
+.import-trigger svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive adjustments for smaller screens */
+@media screen and (max-width: 768px) {
+    .visualizer-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-container,
+    .import-container,
+    .visualizer-controls {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+
+/* Add these styles to your CSS file */
+
+/* Grouping toggle button */
+#toggleGrouping {
+    background-color: #3a4149;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background-color 0.2s;
+}
+
+#toggleGrouping.active {
+    background-color: #4d84e0;
+}
+
+#toggleGrouping:hover {
+    background-color: #535a63;
+}
+
+/* Group node styles */
+.group-properties {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 8px;
+}
+
+.group-property {
+    display: flex;
+    justify-content: space-between;
+    margin: 2px 0;
+    font-size: 0.9em;
+    border-bottom: 1px dashed rgba(125, 125, 125, 0.2);
+    padding: 2px 0;
+}
+
+.group-property:last-child {
+    border-bottom: none;
+}
+
+.group-property .node-key {
+    margin-right: 10px;
+    font-weight: bold;
+    color: #a8abb0;
+}
+
+/* Make group nodes visually distinct */
+.node-card .node-container {
+    transition: background-color 0.2s;
+}
+
+.node:has(.group-properties) .node-card {
+    background-color: rgba(73, 105, 138, 0.15);
+    border-color: rgba(73, 105, 138, 0.5);
+}
+
+.node:has(.group-properties):hover .node-card {
+    background-color: rgba(73, 105, 138, 0.25);
 }

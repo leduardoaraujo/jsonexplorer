@@ -1,0 +1,248 @@
+/* Add these styles to support search navigation */
+.search-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#searchInput {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.result-navigation {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nav-button {
+    background: transparent;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #e2e8f0;
+}
+
+.nav-button:hover {
+    background-color: rgba(74, 85, 104, 0.2);
+}
+
+.result-counter {
+    font-size: 12px;
+    color: #e2e8f0;
+    padding: 0 5px;
+}
+
+/* Fix node styling and alignment */
+.node {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.node-bg {
+    stroke: none;
+    fill: transparent;
+}
+
+.node-hover .node-bg {
+    fill: rgba(255, 255, 255, 0.05);
+}
+
+.node.node-highlight {
+    filter: brightness(1.1);
+}
+
+.node.current-result {
+    filter: brightness(1.2);
+}
+
+/* Improved node card with more compact vertical size */
+.node-card {
+    padding: 8px 12px;     /* Reduced vertical padding */
+    border: 1.5px solid rgba(74, 85, 104, 0.2);
+    border-radius: 6px;
+    background-color: #1e1e1e;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.node.current-result .node-card {
+    border-color: #FFA500 !important;
+    box-shadow: 0 0 0 2px #FFA500;
+}
+
+/* Node container with improved centering */
+.node-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;  /* Center content horizontally */
+    text-align: center;   /* Center text within nodes */
+}
+
+/* More compact node header */
+.node-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;  /* Center header content */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px 0;     /* Reduced vertical padding */
+    width: 100%;            /* Use full width */
+}
+
+/* More compact node content */
+.node-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;  /* Center content */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px 0;     /* Reduced vertical padding */
+    width: 100%;            /* Use full width */
+    margin: 0 auto;         /* Center in container */
+}
+
+/* Fix toggle icon size */
+.toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;    /* Slightly smaller */
+    height: 18px;       /* Slightly smaller */
+    margin-right: 4px;  /* Less space after icon */
+    cursor: pointer;
+    font-size: 11px;    /* Smaller icon */
+    user-select: none;
+}
+
+.node-name {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.node-count {
+    margin-left: 4px;
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+/* More compact group properties */
+.group-properties {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 4px;    /* Less space before properties */
+    align-items: center;     /* Center property rows */
+}
+
+.group-property {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 2px 0;      /* Less vertical spacing between properties */
+    padding: 0 4px;          /* Add some horizontal padding */
+    line-height: 1.2;   /* Tighter line height */
+}
+
+/* Text highlight for search results */
+.text-highlight {
+    background-color: rgba(255, 165, 0, 0.4);
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+/* Value styling */
+.string-value {
+    color: #a8c023;
+}
+
+.number-value {
+    color: #3B82F6;
+}
+
+.boolean-value {
+    color: #10B981;
+}
+
+/* Custom scrollbar styling to match the dark theme */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 4px;
+    border: 2px solid #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #5a6678;
+}
+
+::-webkit-scrollbar-corner {
+    background: #1e1e1e;
+}
+
+/* Add specific styling for Ace editor scrollbars */
+.ace_scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.ace_scrollbar::-webkit-scrollbar-track {
+    background: #282c34;
+}
+
+.ace_scrollbar::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border: 1px solid #282c34;
+}
+
+.ace_scrollbar-v {
+    width: 10px !important;
+    scrollbar-width: thin;
+}
+
+.ace_scrollbar-h {
+    height: 10px !important;
+    scrollbar-width: thin;
+}
+
+/* Also support Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #1e1e1e;
+}
+
+/* Optionally, add custom editor styles */
+#editor {
+    border-radius: 4px;
+    border: 1px solid #2d3748;
+}

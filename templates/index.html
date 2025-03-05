@@ -1,275 +1,130 @@
+<!-- 
+       _______ ____  _   _________  __ ____  __    ____  ____  __________ 
+      / / ___// __ \/ | / / ____/ |/ // __ \/ /   / __ \/ __ \/ ____/ __ \
+ __  / /\__ \/ / / /  |/ / __/  |   // /_/ / /   / / / / /_/ / __/ / /_/ /
+/ /_/ /___/ / /_/ / /|  / /___ /   |/ ____/ /___/ /_/ / _, _/ /___/ _, _/ 
+\____//____/\____/_/ |_/_____//_/|_/_/   /_____/\____/_/ |_/_____/_/ |_|  
+
+-->
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dev Tools Portal</title>
-    <style>
-        :root {
-            --bg-primary: #121212;
-            --bg-secondary: #1e1e1e;
-            --bg-card: #252525;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --accent-color: #60A5FA;
-            --accent-hover: #3b82f6;
-            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            --card-border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
-
-        .header {
-            padding: 2rem;
-            text-align: center;
-            background: var(--bg-secondary);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color) 100%);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: fadeInDown 0.8s ease-out;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto;
-            animation: fadeInUp 0.8s ease-out 0.2s both;
-        }
-
-        .container {
-            flex: 1;
-            padding: 3rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            padding: 1rem;
-            animation: fadeIn 1s ease-out 0.4s both;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 2rem;
-            text-decoration: none;
-            color: inherit;
-            border: var(--card-border);
-            box-shadow: var(--card-shadow);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(96, 165, 250, 0.1), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-            border-color: var(--accent-color);
-        }
-
-        .card:hover::before {
-            transform: translateX(100%);
-        }
-
-        .card h2 {
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card p {
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        .card-icon {
-            font-size: 1.5rem;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                padding: 1.5rem;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Adicionar estilos para busca */
-        .search-container {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--bg-card);
-            padding: 0.5rem;
-            border-radius: 8px;
-            box-shadow: var(--card-shadow);
-        }
-
-        .search-input {
-            background: var(--bg-secondary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            padding: 0.5rem;
-            border-radius: 4px;
-            outline: none;
-            min-width: 200px;
-        }
-
-        .search-input:focus {
-            border-color: var(--accent-color);
-        }
-
-        #resultCount {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .text-highlight {
-            background: rgba(96, 165, 250, 0.3);
-            color: var(--accent-color);
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-
-        .node-highlight {
-            filter: drop-shadow(0 0 8px var(--accent-color));
-        }
-    </style>
+    <title>Editor | 🌎JSON Explorer</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.js"></script>
 </head>
 <body>
-    <header class="header">
-        <h1>
-            JSONSuite
-        </h1>
-        <p class="subtitle">Uma coleção de ferramentas essenciais para desenvolvimento e manipulação de dados</p>
-    </header>
-    
-    <!-- Adicionar barra de pesquisa antes do container principal -->
-    <div class="search-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar no diagrama...">
-        <span id="resultCount"></span>
-    </div>
-
-    <main class="container">
-        <div class="grid">
-            <a href="/jsonexplorer" class="card">
-                <h2>
-                    <span class="card-icon">🔍</span>
-                    JSON Explorer
-                </h2>
-                <p>Explore e analise estruturas JSON com uma interface visual interativa. Visualize, edite e navegue por dados complexos de forma intuitiva.</p>
-            </a>
-            
-            <a href="/markdown" class="card">
-                <h2>
-                    <span class="card-icon">📝</span>
-                    Markdown Viewer
-                </h2>
-                <p>Editor Markdown com preview em tempo real. Transforme seu texto em HTML formatado instantaneamente, com suporte a todos os recursos Markdown.</p>
-            </a>
-            
-            <a href="/tojson" class="card">
-                <h2>
-                    <span class="card-icon">🔄</span>
-                    ToJSON Converter
-                </h2>
-                <p>Converta diferentes formatos de dados para JSON com facilidade. Suporte para CSV, XML e outros formatos populares.</p>
-            </a>
+    <div class="container">
+        <div class="left-panel">
+            <div class="editor-header">
+                <button type="button" class="back-button" title="Voltar ao Portal" onclick="window.location.href='/'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>      
+                          
+                <div class="editor-controls">
+                    <select class="control-dropdown" onchange="handleEditorAction(this.value)">
+                        <option value="" disabled selected>Escolha uma ação</option>
+                        <option value="format">Formatar JSON</option>
+                        <option value="clear">Limpar Editor</option>
+                        <option value="import">Importar JSON</option>
+                        <option value="export">Exportar JSON</option>
+                    </select>
+                    <div class="settings-wrapper">
+                        <button class="icon-button settings-button" onclick="toggleSettings()" title="Configurações">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </button>
+                        <div id="settings-menu" class="settings-menu">
+                            <div class="settings-item">
+                                <label class="settings-label">
+                                    <input type="checkbox" id="showGrid" checked onchange="toggleGrid()">
+                                    <span class="checkmark"></span>
+                                    Mostrar Grid
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="editor-container">
+                <div id="editor"></div>
+            </div>
         </div>
-    </main>
+        <div class="resizer"></div>
+        <div class="right-panel">
+            <div class="visualizer-header">
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Pesquisar no diagrama..." 
+                           autocomplete="off">
+                    <div id="resultCount" class="search-results"></div>
+                </div>               
+                <div class="visualizer-controls">
+                    <label class="switch-container" title="Colapsar/Expandir todos os nós">
+                        <input type="checkbox" id="collapseToggle" onchange="handleCollapseToggle(this.checked)">
+                        <span class="switch-slider"></span>
+                        <span class="switch-label">Colapsar</span>
+                    </label>
+                    <div class="zoom-controls">
+                        <button class="icon-button" onclick="zoomIn()" title="Aumentar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button class="icon-button" onclick="zoomOut()" title="Diminuir">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button class="icon-button" onclick="resetZoom()" title="Redefinir">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 12a9 9 0 11-9-9 9 9 0 019 9z"></path>
+                                <path d="M12 8v4l2.5 2.5"></path>
+                            </svg>
+                        </button>
+                        <button class="icon-button" onclick="fitContent()" title="Ajustar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
+                            </svg>
+                        </button>
+                        <span id="zoomLevel">100%</span>
+                        <div class="divider"></div>
+                    </div>
+                    <!-- <button class="action-button" onclick="saveDiagram()" title="Salvar como SVG">
+                        Salvar SVG
+                    </button> -->
+                </div>
+            </div>
+            <div id="visualizer"></div>
+            <div id="loading-indicator" class="loading-indicator hidden">
+                <div class="spinner"></div>
+                <span>Carregando nós...</span>
+            </div>
+        </div>
+    </div>
+    <div id="welcome-modal" class="modal">
+        <div class="modal-content">
+            <h2>Bem-vindo ao JSON Explorer!</h2>
+            <p>Uma ferramenta simples para explorar e manipular arquivos JSON.</p>
+            <button onclick="closeWelcomePopup()">Fechar</button>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
 </body>
 </html>

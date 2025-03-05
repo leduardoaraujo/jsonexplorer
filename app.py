@@ -24,7 +24,6 @@ app = FastAPI(
     }
 )
 
-
 class MarkdownProcessor:
     def __init__(self):
         self.chunks = []
@@ -52,8 +51,6 @@ class MarkdownProcessor:
         def handle_dict(d, current_level):
             for key, value in d.items():
                 self.current_path.append(key)
-                
-                # Adiciona o heading do tópico
                 heading = "#" * current_level
                 topic_line = f"{heading} {key}"
                 markdown_lines.append(self.add_chunk(topic_line, {
@@ -61,8 +58,6 @@ class MarkdownProcessor:
                     "level": current_level,
                     "key": key
                 }))
-
-                # Processa o valor
                 if isinstance(value, dict):
                     handle_dict(value, current_level + 1)
                 elif isinstance(value, list):
@@ -108,7 +103,6 @@ class MarkdownProcessor:
             handle_list(data, level)
 
         return "\n".join(markdown_lines)
-
 @app.post("/convert/to-markdown",
           summary="Converter JSON para Markdown",
           description="Este endpoint recebe um objeto JSON, processa-o e o converte em uma representação em Markdown. A resposta inclui o conteúdo em Markdown e os 'chunks' que contêm informações adicionais sobre a conversão de cada item do JSON.",
@@ -187,16 +181,11 @@ def markdown_to_json(markdown_text):
     lines = [line.strip() for line in markdown_text.split('\n') if line.strip()]
     
     for line in lines:
-        # Detecta nível do cabeçalho
         if line.startswith('#'):
             header_level = len(line.split()[0])
             section_name = ' '.join(line.split()[1:])
-            
-            # Ajusta a pilha de seções baseado no nível
             while len(section_stack) >= header_level:
                 section_stack.pop()
-            
-            # Cria nova seção
             current_section = result
             for section in section_stack:
                 current_section = current_section[section]
@@ -205,17 +194,11 @@ def markdown_to_json(markdown_text):
             section_stack.append(section_name)
             current_section = current_section[section_name]
             current_list = None
-            
-        # Processa itens de lista
         elif line.startswith('-'):
             content = line[1:].strip()
-            
-            # Verifica se é um par chave-valor
             if ': ' in content and '**' in content:
                 key = content.split('**')[1].split('**')[0].strip()
                 value = content.split(': ', 1)[1].strip()
-                
-                # Tenta converter para tipo apropriado
                 try:
                     if value.lower() == 'true':
                         value = True
@@ -230,14 +213,12 @@ def markdown_to_json(markdown_text):
                             try:
                                 value = float(value)
                             except ValueError:
-                                # Remove aspas se presente
                                 value = value.strip('"\'')
                 except:
                     pass
                 
                 current_section[key] = value
             else:
-                # Item de lista simples
                 if current_list is None:
                     current_list = []
                     current_section = current_list
@@ -262,31 +243,29 @@ if os.path.exists("templates"):
 else:
     raise Exception("Diretório 'templates' não encontrado!")
 
+# @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+# async def read_index(request: Request):
+#     return templates.TemplateResponse("index.html", {"request": request})
+
+# @app.get("/tojson", response_class=HTMLResponse, include_in_schema=False)
+# async def read_tojson(request: Request):
+#     template_path = os.path.join("templates", "tojson.html")
+#     if not os.path.exists(template_path):
+#         raise HTTPException(status_code=404, detail="Template tojson.html não encontrado")
+#     return templates.TemplateResponse("tojson.html", {"request": request})
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def read_index(request: Request):
+async def read_tojson(request: Request):
+    template_path = os.path.join("templates", "index.html")
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=404, detail="Template index.html não encontrado")
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/tojson", response_class=HTMLResponse, include_in_schema=False)
-async def read_tojson(request: Request):
-    # Verifica se o template existe
-    template_path = os.path.join("templates", "tojson.html")
-    if not os.path.exists(template_path):
-        raise HTTPException(status_code=404, detail="Template tojson.html não encontrado")
-    return templates.TemplateResponse("tojson.html", {"request": request})
-
-@app.get("/jsonexplorer", response_class=HTMLResponse, include_in_schema=False)
-async def read_tojson(request: Request):
-    # Verifica se o template existe
-    template_path = os.path.join("templates", "jsonexplorer.html")
-    if not os.path.exists(template_path):
-        raise HTTPException(status_code=404, detail="Template tojson.html não encontrado")
-    return templates.TemplateResponse("jsonexplorer.html", {"request": request})
-
-@app.get("/markdown", response_class=HTMLResponse, include_in_schema=False)
-async def markdown_viewer(request: Request):
-    return templates.TemplateResponse("markdownviewer.html", {"request": request})
+# @app.get("/markdown", response_class=HTMLResponse, include_in_schema=False)
+# async def markdown_viewer(request: Request):
+#     return templates.TemplateResponse("markdownviewer.html", {"request": request})
 
 if __name__ == "__main__":
     print("\n🌎 JSON Explorer")
     print("Estrutura de diretórios criada/verificada")
-    uvicorn.run(app, host="localhost", port=8001)
+    uvicorn.run(app, host="localhost", port=3333)
