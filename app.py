@@ -23,7 +23,6 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT",
     }
 )
-
 class MarkdownProcessor:
     def __init__(self):
         self.chunks = []
@@ -44,7 +43,6 @@ class MarkdownProcessor:
         if value is None:
             return "null"
         return str(value)
-
     def process_json(self, data, level=1):
         markdown_lines = []
 
