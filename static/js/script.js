@@ -1,4 +1,3 @@
-
 const CONFIG = {
     zoom: {
         scale: 1.3,
@@ -7,9 +6,9 @@ const CONFIG = {
     },
     node: {
         baseHeight: 50,
-        minWidth: 190,
-        padding: 10,      
-        borderRadius: 6   
+        minWidth: 30,
+        padding: 10,
+        borderRadius: 6
     },
     debounceDelay: 300,
     font: {
@@ -19,38 +18,144 @@ const CONFIG = {
     editor: {
         fontSize: 14,
         theme: "ace/theme/gruvbox",
-        mode: "ace/mode/json"
+        mode: "ace/mode/json",
+        lineLimit: 50000,
+        xmlMode: "ace/mode/xml",
+        jsonMode: "ace/mode/json",
     },
     layout: {
-        nodeSpacingX: 190, 
-        nodeSpacingY: 80   
+        nodeSpacingX: 190,
+        nodeSpacingY: 80
     },
     grouping: {
-        enabled: true,           
-        maxPropertiesPerNode: 15, 
-        maxDepth: 3,             
-        excludeFromGrouping: []  
+        enabled: true,
+        maxPropertiesPerNode: 15,
+        maxDepth: 3,
+        excludeFromGrouping: []
     },
     search: {
         highlightColor: '#FFA500',
-        resultBufferSize: 50 
+        resultBufferSize: 50
+    },
+    colors: {
+        text: {
+            default: '#e6e6e6',
+            key: '#f8fafc',
+            string: '#f2f2f2',
+            number: '#3b82f6',
+            boolean: {
+                true: '#10b981',
+                false: '#ef4444'
+            },
+            null: '#ef4444',
+            groupTitle: '#f8fafc'
+        },
+        root: {
+            background: '#1e40af', // Azul escuro para o root
+            border: '#3b82f6'      // Azul mais claro para a borda
+        }
+    },
+    xmlSupport: {
+        convertOptions: {
+            compact: false,
+            spaces: 2,
+            ignoreAttributes: false
+        }
     }
 };
+
+const SUPPORTED_FORMATS = {
+    json: {
+        extension: '.json',
+        mimeType: 'application/json',
+        editorMode: CONFIG.editor.jsonMode,
+        validate: text => {
+            try {
+                JSON.parse(text);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+        format: text => {
+            try {
+                return JSON.stringify(JSON.parse(text), null, 2);
+            } catch {
+                return text;
+            }
+        },
+        stringify: data => JSON.stringify(data, null, 2),
+        parse: text => JSON.parse(text)
+    },
+    xml: {
+        extension: '.xml',
+        mimeType: 'application/xml',
+        editorMode: CONFIG.editor.xmlMode,
+        validate: text => {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, "text/xml");
+                const parseError = doc.querySelector("parsererror");
+                return !parseError;
+            } catch {
+                return false;
+            }
+        },
+        format: text => {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, "text/xml");
+                const serializer = new XMLSerializer();
+                const formatted = serializer.serializeToString(doc)
+                    .replace(/></g, '>\n<')
+                    .replace(/(<[^/][^>]*>)/g, '\n$1')
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .map(line => '  '.repeat(line.match(/^\s*/)[0].length / 2) + line.trim())
+                    .join('\n');
+                return formatted;
+            } catch {
+                return text;
+            }
+        },
+        stringify: async data => {
+            try {
+                return xmlToJson(data);
+            } catch (err) {
+                console.error('Error converting to XML:', err);
+                return '';
+            }
+        },
+        parse: text => {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                return xmlToJson(xmlDoc);
+            } catch (err) {
+                console.error('Error parsing XML:', err);
+                return null;
+            }
+        }
+    }
+};
+
 const state = {
     editor: null,
     svg: null,
     mainGroup: null,
     zoom: null,
-    collapsedNodes: new Map(), 
+    collapsedNodes: new Map(),
     measurementCache: new Map(),
     currentZoom: CONFIG.zoom.initialLevel,
     groupingEnabled: CONFIG.grouping.enabled,
-    searchResults: [],        
-    currentSearchIndex: -1,   
-    searchTerm: '',           
-    lastClickedNode: null,    
-    nodePaths: new Map()      
+    searchResults: [],
+    currentSearchIndex: -1,
+    searchTerm: '',
+    lastClickedNode: null,
+    nodePaths: new Map(),
+    isEditorCollapsed: false,
 };
+
 function initializeEditor() {
     state.editor = ace.edit("editor");
     state.editor.setTheme(CONFIG.editor.theme);
@@ -61,52 +166,76 @@ function initializeEditor() {
         showGutter: true,
         highlightActiveLine: true,
         wrap: true,
-        vScrollBarAlwaysVisible: true,
+        vScrollBarAlwaysVisible: false,
         hScrollBarAlwaysVisible: false,
         scrollPastEnd: 0.5,
         animatedScroll: true,
         fadeFoldWidgets: true,
         showFoldWidgets: true
     });
-    const LINE_LIMIT = 50000;
+
     state.editor.getSession().on('change', function (e) {
         const lineCount = state.editor.session.getLength();
-        if (lineCount > LINE_LIMIT) {
+        if (lineCount > CONFIG.editor.lineLimit) {
             state.editor.session.getUndoManager().undo(true);
-            showLimitAlert(LINE_LIMIT);
+            showLimitAlert(CONFIG.editor.lineLimit);
             return;
         }
         debounceVisualization();
     });
+
     const debounceVisualization = debounce(() => {
-        try {
-            const content = state.editor.getValue().trim();
-            if (content) {
-                updateVisualization(JSON.parse(content));
-            } else {
-                clearVisualization();
-            }
-        } catch (e) {
-            console.log("Aguardando JSON válido...");
+        const content = state.editor.getValue().trim();
+        if (!content) {
+            clearVisualization();
+            return;
         }
+        processEditorContent(content);
     }, CONFIG.debounceDelay);
+
     state.editor.container.addEventListener('paste', function (e) {
         const clipboardData = e.clipboardData || window.clipboardData;
         const pastedText = clipboardData.getData('text');
         if (!pastedText) return;
         const pastedLines = pastedText.split('\n').length;
         const currentLines = state.editor.session.getLength();
-        if ((currentLines + pastedLines - 1) > LINE_LIMIT) {
+        if ((currentLines + pastedLines - 1) > CONFIG.editor.lineLimit) {
             e.preventDefault();
             e.stopPropagation();
-            showLimitAlert(LINE_LIMIT);
+            showLimitAlert(CONFIG.editor.lineLimit);
         }
     });
     customizeEditorAppearance();
 }
-/**
- * Apply custom styling to editor elements that can't be controlled via CSS
- */
+
+function processEditorContent(content) {
+    try {
+        const format = detectFormat(content);
+        setEditorMode(format);
+        
+        // Salvar estado atual dos nós colapsados
+        const currentCollapsedState = new Map(state.collapsedNodes);
+        
+        if (format === 'xml') {
+            const xmlData = SUPPORTED_FORMATS.xml.parse(content);
+            if (xmlData) {
+                // Restaurar estado de colapso anterior
+                state.collapsedNodes = currentCollapsedState;
+                updateVisualization(xmlData);
+            } else {
+                console.log("XML inválido ou vazio");
+            }
+        } else {
+            const jsonData = JSON.parse(content);
+            // Restaurar estado de colapso anterior
+            state.collapsedNodes = currentCollapsedState;
+            updateVisualization(jsonData);
+        }
+    } catch (e) {
+        console.log("Aguardando conteúdo válido...", e);
+    }
+}
+
 function customizeEditorAppearance() {
     setTimeout(() => {
         const editorElement = document.getElementById('editor');
@@ -124,10 +253,6 @@ function customizeEditorAppearance() {
         }
     }, 100);
 }
-/**
- * Show an alert popup when content exceeds line limit
- * @param {number} limit - The maximum number of lines allowed
- */
 function showLimitAlert(limit) {
     const modal = document.createElement('div');
     modal.className = 'limit-alert-modal';
@@ -250,7 +375,7 @@ function initializeVisualization() {
         .attr("width", "100%")
         .attr("height", "100%")
         .attr("class", "visualization-svg")
-        .style("display", "block"); 
+        .style("display", "block");
     state.svg.append("defs")
         .append("pattern")
         .attr("id", "grid-pattern")
@@ -265,16 +390,16 @@ function initializeVisualization() {
         .attr("height", "100%")
         .attr("class", "grid")
         .style("fill", "url(#grid-pattern)")
-        .style("pointer-events", "none"); 
+        .style("pointer-events", "none");
     state.mainGroup = state.svg.append("g")
         .attr("class", "main-group")
         .append("rect")
-        .attr("width", "200%")  
+        .attr("width", "200%")
         .attr("height", "200%")
-        .attr("x", "-50%")      
+        .attr("x", "-50%")
         .attr("y", "-50%")
-        .attr("fill", "none")   
-        .attr("pointer-events", "all"); 
+        .attr("fill", "none")
+        .attr("pointer-events", "all");
     state.mainGroup = state.svg.select(".main-group")
         .append("g")
         .attr("class", "content-group");
@@ -294,7 +419,7 @@ function initializeVisualization() {
         .on("end", () => {
             d3.select("#visualizer").classed("is-zooming", false);
         })
-        .scaleExtent([0.1, 8]); 
+        .scaleExtent([0.1, 8]);
     state.svg.call(state.zoom);
 }
 function initializeResizer() {
@@ -305,7 +430,7 @@ function initializeResizer() {
     let startX, startWidth;
     let animationFrameId = null;
     function onMouseMove(e) {
-        if (!isResizing) return;
+        if (!isResizing || state.isEditorCollapsed) return;
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
@@ -382,14 +507,18 @@ function initializeEventListeners() {
 function updateVisualization(data, shouldAnimate = true) {
     clearVisualization();
     state.measurementCache.clear();
+    
     const root = d3.hierarchy(transformData(data));
+    
+    // Aplicar estado de colapso aos nós
     root.descendants().forEach(d => {
         const nodeId = createNodeId(d);
-        if (state.collapsedNodes.has(nodeId)) {
+        if (state.collapsedNodes.has(nodeId) && d.children) {
             d._children = d.children;
             d.children = null;
         }
     });
+
     root.descendants().forEach(d => {
         d.nodeWidth = getNodeWidth(d);
         d.nodeHeight = getNodeHeight(d);
@@ -407,8 +536,8 @@ function updateVisualization(data, shouldAnimate = true) {
 function customTreeLayout(root) {
     const treeLayout = d3.tree()
         .nodeSize([
-            CONFIG.layout.nodeSpacingY * 0.95, 
-            CONFIG.layout.nodeSpacingX * 0.9   
+            CONFIG.layout.nodeSpacingY * 0.95,
+            CONFIG.layout.nodeSpacingX * 0.9
         ])
         .separation(function (a, b) {
             const nodeWidthA = a.nodeWidth || 180;
@@ -424,8 +553,8 @@ function customTreeLayout(root) {
     const xPositions = [0];
     for (let i = 0; i < maxDepth; i++) {
         const minGap = Math.max(
-            CONFIG.layout.nodeSpacingX * 0.7,  
-            (levelWidth[i] + levelWidth[i + 1]) / 2 + 20 
+            CONFIG.layout.nodeSpacingX * 0.7,
+            (levelWidth[i] + levelWidth[i + 1]) / 2 + 20
         );
         xPositions.push(xPositions[i] + minGap);
     }
@@ -450,14 +579,14 @@ function fixAllOverlaps(root) {
         for (let i = 1; i < nodes.length; i++) {
             const prevNode = nodes[i - 1];
             const currNode = nodes[i];
-            const minSeparation = (prevNode.nodeHeight / 2 + currNode.nodeHeight / 2) + 10; 
+            const minSeparation = (prevNode.nodeHeight / 2 + currNode.nodeHeight / 2) + 10;
             if (currNode.x - prevNode.x < minSeparation) {
                 const delta = minSeparation - (currNode.x - prevNode.x);
                 shiftSubtreeVertical(currNode, delta);
             }
         }
     });
-    fixBranchOverlaps(root, 15); 
+    fixBranchOverlaps(root, 15);
 }
 /**
  * Fix overlaps between different branches with minimal spacing
@@ -477,7 +606,7 @@ function fixBranchOverlaps(root, padding = 20) {
     });
     let overlapsFixed = 0;
     let iterations = 0;
-    const MAX_ITERATIONS = 10; 
+    const MAX_ITERATIONS = 10;
     do {
         overlapsFixed = 0;
         iterations++;
@@ -491,7 +620,7 @@ function fixBranchOverlaps(root, padding = 20) {
                 if (!(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom)) {
                     const branchToShift = getBranchToShift(a.node, b.node);
                     const verticalOverlap = Math.min(a.bottom - b.top, b.bottom - a.top);
-                    const shift = verticalOverlap + padding; 
+                    const shift = verticalOverlap + padding;
                     shiftSubtreeVertical(branchToShift, shift);
                     updateSubtreeBounds(branchToShift, nodeBounds, shift);
                     overlapsFixed++;
@@ -585,8 +714,10 @@ function renderNodes(root) {
         .join("g")
         .attr("class", "node")
         .attr("id", d => `node-${d.data.name}-${d.depth}`)
-        .attr("transform", d => `translate(${d.y},${d.x})`) 
-        .attr("opacity", 1); 
+        .attr("transform", d => `translate(${d.y},${d.x})`)
+        .attr("opacity", 1);
+
+    // Adiciona o retângulo de fundo com cor especial para o root
     nodes.append("rect")
         .attr("class", "node-bg")
         .attr("x", d => -(d.nodeWidth / 2))
@@ -595,16 +726,18 @@ function renderNodes(root) {
         .attr("height", d => d.nodeHeight)
         .attr("rx", CONFIG.node.borderRadius)
         .attr("ry", CONFIG.node.borderRadius)
-        .attr("fill", "transparent")
-        .attr("pointer-events", "all"); 
+        .attr("fill", d => d.depth === 0 ? CONFIG.colors.root.background : "transparent")
+        .attr("pointer-events", "all");
+
     const foreignObjects = nodes.append("foreignObject")
         .attr("x", d => -(d.nodeWidth / 2))
         .attr("y", d => -(d.nodeHeight / 2))
         .attr("width", d => d.nodeWidth)
         .attr("height", d => d.nodeHeight)
         .attr("pointer-events", "none");
+
     foreignObjects.append("xhtml:div")
-        .attr("class", "node-card")
+        .attr("class", d => d.depth === 0 ? "node-card root-node" : "node-card")
         .style("width", "100%")
         .style("height", "100%")
         .style("box-sizing", "border-box")
@@ -612,8 +745,9 @@ function renderNodes(root) {
         .style("display", "flex")
         .style("align-items", "center")
         .style("justify-content", "center")
-        .style("pointer-events", "auto") 
+        .style("pointer-events", "auto")
         .html(d => createNodeContent(d));
+
     nodes
         .on("mouseover", function () {
             d3.select(this).classed("node-hover", true);
@@ -640,18 +774,18 @@ function attachToggleButtonListeners() {
         }
         const buttonId = newButton.id;
         if (buttonId && buttonId.startsWith('toggle-')) {
-            const nodeId = buttonId.substring(7); 
+            const nodeId = buttonId.substring(7);
             newButton.addEventListener('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 toggleNode(nodeId, event);
-            }, true); 
+            }, true);
         }
     });
 }
 function createNodeContent(d) {
     const content = ['<div class="node-container">'];
-    const nodeId = createNodeId(d); 
+    const nodeId = createNodeId(d);
     if (d.data.isGroupNode) {
         content.push(`<div class="node-header"><span class="node-name">${d.data.name}</span></div>`);
         content.push('<div class="group-properties">');
@@ -712,7 +846,7 @@ function renderLinks(root) {
         .attr("class", "link")
         .attr("id", d => `link-${d.source.data.name}-${d.target.data.name}`)
         .attr("d", function (d) {
-            const sourceX = d.source.y; 
+            const sourceX = d.source.y;
             const sourceY = d.source.x;
             const targetX = d.target.y;
             const targetY = d.target.x;
@@ -729,7 +863,7 @@ function renderLinks(root) {
         .attr("stroke", "#4a5568")
         .attr("stroke-width", 1.5)
         .attr("fill", "none")
-        .attr("shape-rendering", "geometricPrecision"); 
+        .attr("shape-rendering", "geometricPrecision");
 }
 function clearVisualization() {
     if (state.mainGroup) {
@@ -739,7 +873,7 @@ function clearVisualization() {
 }
 function createHighlightedNodeContent(d, searchTerm) {
     const content = ['<div class="node-container">'];
-    const nodeId = createNodeId(d); 
+    const nodeId = createNodeId(d);
     if (d.data.isGroupNode) {
         content.push(`<div class="node-header"><span class="node-name">${highlightText(d.data.name, searchTerm)}</span></div>`);
         content.push('<div class="group-properties">');
@@ -764,8 +898,8 @@ function createHighlightedNodeContent(d, searchTerm) {
                 <button class="node-toggle-button" id="toggle-${encodeURIComponent(nodeId)}" type="button" title="${isCollapsed ? 'Expand' : 'Collapse'}">
                     <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         ${isCollapsed
-                ? '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>' 
-                : '<line x1="5" y1="12" x2="19" y2="12"></line>' 
+                ? '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>'
+                : '<line x1="5" y1="12" x2="19" y2="12"></line>'
             }
                     </svg>
                 </button>
@@ -804,7 +938,7 @@ function getNodeWidth(d) {
             temp.textContent = `${prop.name}: ${prop.value}`;
             maxWidth = Math.max(maxWidth, temp.offsetWidth);
         });
-        const width = Math.max(CONFIG.node.minWidth, maxWidth + 40); 
+        const width = Math.max(CONFIG.node.minWidth, maxWidth + 40);
         document.body.removeChild(temp);
         state.measurementCache.set(cacheKey, width);
         return width;
@@ -815,7 +949,7 @@ function getNodeWidth(d) {
         } else {
             temp.textContent = `${d.data.name}: ${d.data.value || ''}`;
         }
-        const width = Math.max(CONFIG.node.minWidth, temp.offsetWidth + 40); 
+        const width = Math.max(CONFIG.node.minWidth, temp.offsetWidth + 40);
         document.body.removeChild(temp);
         state.measurementCache.set(cacheKey, width);
         return width;
@@ -841,26 +975,26 @@ function getNodeHeight(d) {
     document.body.appendChild(temp);
     if (d.data.isGroupNode) {
         temp.innerHTML = `<div>${d.data.name}</div>`;
-        let height = temp.offsetHeight; 
+        let height = temp.offsetHeight;
         d.data.properties.forEach(prop => {
             temp.innerHTML = `<div>${prop.name}: ${prop.value}</div>`;
-            height += temp.offsetHeight; 
+            height += temp.offsetHeight;
         });
-        height += 20; 
+        height += 20;
         document.body.removeChild(temp);
         state.measurementCache.set(cacheKey, height);
         return height;
     } else {
-        const width = getNodeWidth(d) - 30; 
+        const width = getNodeWidth(d) - 30;
         temp.style.width = `${width}px`;
-        temp.style.whiteSpace = 'normal'; 
+        temp.style.whiteSpace = 'normal';
         if (d.data.children || d._children) {
             const childCount = d._children ? d._children.length : (d.children ? d.children.length : 0);
             temp.textContent = `${d.data.name} [${childCount}]`;
         } else {
             temp.textContent = `${d.data.name}: ${d.data.value || ''}`;
         }
-        const height = Math.max(CONFIG.node.baseHeight, temp.offsetHeight + 16); 
+        const height = Math.max(CONFIG.node.baseHeight, temp.offsetHeight + 16);
         document.body.removeChild(temp);
         state.measurementCache.set(cacheKey, height);
         return height;
@@ -869,146 +1003,232 @@ function getNodeHeight(d) {
 function transformData(data, key = "root", depth = 0) {
     if (data === null) return { name: key, type: "null", value: "null" };
     const type = Array.isArray(data) ? "array" : typeof data;
+
+    // Para valores primitivos
     if (type !== "object" && type !== "array") {
         return { name: key, type: type, value: String(data) };
     }
+
     const entries = Object.entries(data);
-    if (state.groupingEnabled && type === "object" && depth > 0 && entries.length > 1) {
-        const complexProps = [];
-        const simpleProps = [];
-        entries.forEach(([k, v]) => {
-            const propType = Array.isArray(v) ? "array" : typeof v;
-            const isSimple = propType !== "object" && propType !== "array";
-            const isExcluded = CONFIG.grouping.excludeFromGrouping.includes(k);
-            if (isSimple && !isExcluded) {
-                simpleProps.push([k, v, propType]);
-            } else {
-                complexProps.push([k, v]);
-            }
-        });
-        const children = [];
-        if (simpleProps.length > 0 && simpleProps.length <= CONFIG.grouping.maxPropertiesPerNode) {
-            const groupNode = {
-                name: `${key} Properties`,
-                type: "group",
-                isGroupNode: true,
-                properties: simpleProps.map(([k, v, t]) => ({
-                    name: k,
-                    value: String(v),
-                    type: t
-                }))
-            };
-            children.push(groupNode);
-        } else if (simpleProps.length > CONFIG.grouping.maxPropertiesPerNode) {
-            const groups = [];
-            for (let i = 0; i < simpleProps.length; i += CONFIG.grouping.maxPropertiesPerNode) {
-                const batch = simpleProps.slice(i, i + CONFIG.grouping.maxPropertiesPerNode);
-                const groupNode = {
-                    name: `${key}  ${Math.floor(i / CONFIG.grouping.maxPropertiesPerNode) + 1}`,
-                    type: "group",
-                    isGroupNode: true,
-                    properties: batch.map(([k, v, t]) => ({
-                        name: k,
-                        value: String(v),
-                        type: t
-                    }))
-                };
-                children.push(groupNode);
-            }
-        } else {
-            simpleProps.forEach(([k, v, t]) => {
-                children.push({ name: k, type: t, value: String(v) });
-            });
-        }
-        complexProps.forEach(([k, v]) => {
-            children.push(transformData(v, k, depth + 1));
-        });
+    
+    // Se não houver entradas, retorna um nó simples
+    if (entries.length === 0) {
         return {
             name: key,
             type: type,
-            children: children,
-            collapsed: false,
-            value: type === "array" ? `${entries.length} items` : `${entries.length} props`
+            value: type === "array" ? "[]" : "{}"
         };
     }
-    const children = entries.map(([k, v]) => {
-        const child = transformData(v, k, depth + 1);
-        child.weight = getNodeComplexity(v);
-        return child;
+
+    // Separa propriedades simples e complexas
+    const simpleProps = [];
+    const complexProps = [];
+    
+    entries.forEach(([k, v]) => {
+        const propType = Array.isArray(v) ? "array" : typeof v;
+        const isSimple = propType !== "object" && propType !== "array" || 
+                        (propType === "object" && v === null) ||
+                        (Array.isArray(v) && v.length === 0) ||
+                        (propType === "object" && Object.keys(v).length === 0);
+        
+        if (isSimple) {
+            simpleProps.push({ name: k, value: v, type: propType });
+        } else {
+            complexProps.push([k, v]);
+        }
     });
+
+    // Se todas as propriedades são simples, agrupa em um único nó
+    if (complexProps.length === 0) {
+        return {
+            name: key,
+            type: "group",
+            isGroupNode: true,
+            properties: simpleProps.map(prop => ({
+                name: prop.name,
+                value: String(prop.value),
+                type: prop.type
+            }))
+        };
+    }
+
+    // Se há uma mistura de propriedades simples e complexas
+    const children = [];
+    
+    // Agrupa todas as propriedades simples em um único nó se houver alguma
+    if (simpleProps.length > 0) {
+        children.push({
+            name: "properties",
+            type: "group",
+            isGroupNode: true,
+            properties: simpleProps.map(prop => ({
+                name: prop.name,
+                value: String(prop.value),
+                type: prop.type
+            }))
+        });
+    }
+
+    // Processa propriedades complexas
+    complexProps.forEach(([k, v]) => {
+        if (Array.isArray(v)) {
+            // Cria um nó para o array
+            const arrayNode = {
+                name: k,
+                type: "array",
+                children: v.map((item, index) => {
+                    if (typeof item === 'object' && item !== null) {
+                        // Para objetos dentro do array, processa cada um separadamente
+                        const itemNode = transformData(item, `${k}_${index}`, depth + 1);
+                        // Se o item tem suas próprias propriedades complexas, mantém a estrutura
+                        return itemNode;
+                    } else {
+                        // Para valores primitivos no array
+                        return transformData(item, `item_${index}`, depth + 1);
+                    }
+                })
+            };
+            children.push(arrayNode);
+        } else if (typeof v === 'object' && v !== null) {
+            // Para objetos, processa recursivamente
+            children.push(transformData(v, k, depth + 1));
+        }
+    });
+
     return {
         name: key,
         type: type,
         children: children,
         collapsed: false,
-        value: type === "array" ? `${entries.length} items` : `${entries.length} props`,
-        weight: getNodeComplexity(data)
+        value: type === "array" ? `${entries.length} items` : undefined
     };
 }
-function getNodeComplexity(data) {
-    if (data === null || data === undefined) return 1;
-    if (typeof data !== 'object') return 1;
-    const isArray = Array.isArray(data);
-    const entries = Object.entries(data);
-    if (entries.length === 0) return 1;
-    return entries.length;
-}
 function createNodeId(node) {
-    let parts = [node.data.name];
+    let parts = [];
     let current = node;
+
+    // Tratamento especial para nós XML
+    const normalizedName = node.data.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+    parts.push(normalizedName);
+
+    // Adiciona informação dos nós pais para criar um ID único
     while (current.parent && current.parent.data.name !== "root") {
-        parts.unshift(current.parent.data.name);
+        const parentName = current.parent.data.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+        parts.unshift(parentName);
         current = current.parent;
     }
-    if (parts.length > 5) {
-        const firstParts = parts.slice(0, 2);
-        const lastParts = parts.slice(-3);
-        parts = [...firstParts, "...", ...lastParts];
-    }
-    return `${parts.join("/")}|${node.depth}`;
+
+    // Adiciona um hash baseado no caminho completo para garantir unicidade
+    const fullPath = parts.join('/');
+    const pathHash = hashString(fullPath);
+
+    return `${fullPath}|${node.depth}|${pathHash}`;
 }
+
+// Função auxiliar para gerar um hash simples
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36).substr(0, 6);
+}
+
 function toggleNode(nodeId, event) {
     if (event) {
         event.preventDefault();
         event.stopPropagation();
-        event.stopImmediatePropagation();
     }
+    
     try {
-        console.log("Toggle node triggered for:", nodeId); 
         nodeId = decodeURIComponent(nodeId);
         const currentTransform = d3.zoomTransform(state.svg.node());
         const wasCollapsed = state.collapsedNodes.has(nodeId);
+        
         if (wasCollapsed) {
             state.collapsedNodes.delete(nodeId);
-            console.log("Node expanded:", nodeId);
         } else {
             state.collapsedNodes.set(nodeId, true);
-            console.log("Node collapsed:", nodeId);
         }
-        updateVisualization(JSON.parse(state.editor.getValue()), false);
+
+        const content = state.editor.getValue();
+        const format = detectFormat(content);
+        
+        if (format === 'xml') {
+            const xmlData = SUPPORTED_FORMATS.xml.parse(content);
+            if (xmlData) {
+                updateVisualization(xmlData, false);
+            }
+        } else {
+            const jsonData = JSON.parse(content);
+            updateVisualization(jsonData, false);
+        }
+        
         state.svg.call(state.zoom.transform, currentTransform);
     } catch (error) {
         console.error("Error toggling node:", error);
     }
 }
+
 function collapseAll() {
-    d3.selectAll('.node').data().forEach(node => {
-        if (node.data.children) {
-            const nodeId = createNodeId(node);
-            state.collapsedNodes.set(nodeId, true);
+    try {
+        const content = state.editor.getValue().trim();
+        const format = detectFormat(content);
+        
+        // Limpa o estado atual de colapso
+        state.collapsedNodes.clear();
+        
+        // Pré-processa os dados para encontrar todos os nós
+        let data;
+        if (format === 'xml') {
+            data = SUPPORTED_FORMATS.xml.parse(content);
+        } else {
+            data = JSON.parse(content);
         }
-    });
-    updateVisualization(JSON.parse(state.editor.getValue()), false);
-}
-function expandAll() {
-    state.collapsedNodes.clear();
-    updateVisualization(JSON.parse(state.editor.getValue()), false);
-}
-function handleEditorAction(action) {
-    if (action === "import") {
-        document.getElementById('jsonFileInput').click();
+        
+        // Cria uma hierarquia temporária para identificar todos os nós
+        const tempRoot = d3.hierarchy(transformData(data));
+        
+        // Colapsa todos os nós que têm filhos
+        tempRoot.descendants().forEach(node => {
+            if (node.data.children || node._children) {
+                const nodeId = createNodeId(node);
+                state.collapsedNodes.set(nodeId, true);
+            }
+        });
+        
+        // Atualiza a visualização
+        updateVisualization(data, false);
+        
+    } catch (error) {
+        console.error('Error in collapseAll:', error);
     }
 }
+
+function expandAll() {
+    try {
+        const content = state.editor.getValue().trim();
+        const format = detectFormat(content);
+        
+        // Limpa todos os estados de colapso
+        state.collapsedNodes.clear();
+        
+        // Atualiza a visualização com base no formato
+        if (format === 'xml') {
+            const xmlData = SUPPORTED_FORMATS.xml.parse(content);
+            updateVisualization(xmlData, false);
+        } else {
+            const jsonData = JSON.parse(content);
+            updateVisualization(jsonData, false);
+        }
+        
+    } catch (error) {
+        console.error('Error in expandAll:', error);
+    }
+}
+
 function handleCollapseToggle(isChecked) {
     if (isChecked) {
         collapseAll();
@@ -1186,7 +1406,7 @@ function updateSearchNavigation() {
         return;
     }
     navElement.style.display = 'flex';
-    const currentIndex = state.currentSearchIndex + 1; 
+    const currentIndex = state.currentSearchIndex + 1;
     document.getElementById('currentResult').textContent = currentIndex;
     document.getElementById('totalResults').textContent = count;
 }
@@ -1260,7 +1480,7 @@ function navigateNextResult() {
     if (state.searchResults.length === 0) return;
     let newIndex = state.currentSearchIndex + 1;
     if (newIndex >= state.searchResults.length) {
-        newIndex = 0; 
+        newIndex = 0;
     }
     navigateToSearchResult(newIndex);
 }
@@ -1269,7 +1489,7 @@ function navigatePreviousResult() {
     if (state.searchResults.length === 0) return;
     let newIndex = state.currentSearchIndex - 1;
     if (newIndex < 0) {
-        newIndex = state.searchResults.length - 1; 
+        newIndex = state.searchResults.length - 1;
     }
     navigateToSearchResult(newIndex);
 }
@@ -1293,13 +1513,13 @@ function zoomToNode(node) {
     const centerY = viewportHeight / 2;
     const transform = d3.zoomIdentity
         .translate(
-            centerX - node.y * scale,  
-            centerY - node.x * scale   
+            centerX - node.y * scale,
+            centerY - node.x * scale
         )
         .scale(scale);
     state.svg.transition()
-        .duration(400)  
-        .ease(d3.easeCubicOut)  
+        .duration(400)
+        .ease(d3.easeCubicOut)
         .call(state.zoom.transform, transform)
         .on("start", () => {
             d3.select("#visualizer").classed("is-zooming", true);
@@ -1456,9 +1676,9 @@ function visualizeJSON() {
 }
 function handleEditorAction(action) {
     if (!action) return;
-    console.log('Action selected:', action); 
+    console.log('Action selected:', action);
     const actions = {
-        'format': formatJSON,
+        'format': formatContent,
         'clear': clearEditor,
         'collapseAll': collapseAll,
         'expandAll': expandAll,
@@ -1469,6 +1689,12 @@ function handleEditorAction(action) {
                 const fileInput = document.getElementById('jsonFileInput');
                 if (fileInput) fileInput.click();
             }
+        },
+        'export-json': function () {
+            exportFile('json');
+        },
+        'export-xml': function () {
+            exportFile('xml');
         }
     };
     if (actions[action]) {
@@ -1479,11 +1705,9 @@ function handleEditorAction(action) {
         dropdown.selectedIndex = 0;
     }
 }
-/**
- * Trigger the file input dialog for importing JSON
- */
+
 function triggerImportDialog() {
-    console.log('Triggering import dialog'); 
+    console.log('Triggering import dialog');
     const fileInput = document.getElementById('jsonFileInput');
     if (fileInput) {
         fileInput.click();
@@ -1492,23 +1716,140 @@ function triggerImportDialog() {
         alert('Erro ao abrir o diálogo de importação. Por favor, tente novamente.');
     }
 }
-/**
- * Import JSON file from user's computer
- * Reads the file, validates it as JSON, and loads it into the editor
- * @param {HTMLInputElement} fileInput - The file input element containing the selected file
- */
+
+async function exportFile(format = 'json') {
+    if (!state.editor) {
+        console.error('Editor não inicializado');
+        return;
+    }
+
+    const formatter = SUPPORTED_FORMATS[format];
+    if (!formatter) {
+        showFileFeedback('error', 'Formato não suportado');
+        return;
+    }
+
+    try {
+        const content = state.editor.getValue();
+        const data = JSON.parse(content);
+        
+        let exportContent;
+        if (format === 'json') {
+            exportContent = formatter.stringify(data);
+        } else {
+            exportContent = await formatter.stringify(data);
+        }
+
+        const blob = new Blob([exportContent], { type: formatter.mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `data${formatter.extension}`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        URL.revokeObjectURL(url);
+        showFileFeedback('success', `Arquivo exportado como ${format.toUpperCase()}`);
+    } catch (err) {
+        console.error(`Erro ao exportar ${format}:`, err);
+        showFileFeedback('error', `Erro ao exportar ${format.toUpperCase()}`);
+    }
+}
+
+async function importFile(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const extension = file.name.toLowerCase().split('.').pop();
+    const format = extension === 'xml' ? 'xml' : 'json';
+    
+    if (!SUPPORTED_FORMATS[format]) {
+        showFileFeedback('error', 'Formato não suportado. Use JSON ou XML.');
+        fileInput.value = '';
+        return;
+    }
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+        showFileFeedback('error', 'Arquivo muito grande. Máximo: 5MB');
+        fileInput.value = '';
+        return;
+    }
+
+    showFileFeedback('loading', `Carregando ${file.name}...`);
+
+    try {
+        const content = await file.text();
+        if (!SUPPORTED_FORMATS[format].validate(content)) {
+            throw new Error(`${format.toUpperCase()} inválido`);
+        }
+        
+        const formatted = SUPPORTED_FORMATS[format].format(content);
+        state.editor.setValue(formatted);
+        state.editor.clearSelection();
+        setEditorMode(format);
+
+        let visualizationData;
+        if (format === 'xml') {
+            visualizationData = SUPPORTED_FORMATS[format].parse(content);
+            if (!visualizationData) {
+                throw new Error('Erro ao converter XML para JSON');
+            }
+        } else {
+            visualizationData = JSON.parse(formatted);
+        }
+
+        updateVisualization(visualizationData);
+        showFileFeedback('success', `${file.name} carregado com sucesso`);
+    } catch (err) {
+        console.error('Erro ao processar arquivo:', err);
+        showFileFeedback('error', `Erro ao processar ${format.toUpperCase()}: ${err.message}`);
+    }
+    
+    fileInput.value = '';
+}
+
+function exportJsonFromEditor() {
+    if (!state.editor) {
+        console.error('Editor not initialized');
+        return;
+    }
+    try {
+        const editorContent = state.editor.getValue();
+        json.parse(editorContent);
+
+        const blob = new Blob([editorContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = 'data.json';
+
+        document.body.appendChild(downloadLink);
+
+        url.revokeObjectURL(url);
+
+        showFileFeedback('sucess', 'JSON exportado com sucesso.');
+    } catch (err) {
+        console.error('Error ao expotar JSON: ', err);
+        showFileFeedback('error', 'Erro ao exportar JSON. Verifique o conteúdo.');
+    }
+}
+
 function importJSONFile(fileInput) {
-    console.log('Import JSON file triggered', fileInput); 
+    console.log('Import JSON file triggered', fileInput);
     const file = fileInput.files[0];
     if (!file) {
         console.warn('No file selected');
         return;
     }
-    console.log('File selected:', file.name, file.size); 
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; 
+    console.log('File selected:', file.name, file.size);
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
         showFileFeedback('error', 'Arquivo muito grande. Tamanho máximo: 5MB.');
-        fileInput.value = ''; 
+        fileInput.value = '';
         return;
     }
     const reader = new FileReader();
@@ -1516,18 +1857,18 @@ function importJSONFile(fileInput) {
     reader.onload = function (e) {
         try {
             const content = e.target.result;
-            console.log('File content loaded, length:', content.length); 
+            console.log('File content loaded, length:', content.length);
             const lineCount = content.split('\n').length;
-            if (lineCount > LINE_LIMIT) {
-                showFileFeedback('error', `Arquivo excede o limite de ${LINE_LIMIT.toLocaleString()} linhas.`);
-                fileInput.value = ''; 
+            if (lineCount > CONFIG.editor.lineLimit) {
+                showFileFeedback('error', `Arquivo excede o limite de ${CONFIG.editor.lineLimit.toLocaleString()} linhas.`);
+                fileInput.value = '';
                 return;
             }
             const jsonObj = JSON.parse(content);
             if (state.editor) {
                 state.editor.setValue(JSON.stringify(jsonObj, null, 2));
-                state.editor.clearSelection(); 
-                state.editor.focus(); 
+                state.editor.clearSelection();
+                state.editor.focus();
                 showFileFeedback('success', `${file.name} carregado com sucesso.`);
                 updateVisualization(jsonObj);
             } else {
@@ -1593,11 +1934,11 @@ function prepareSvgForExport() {
 }
 function formatValue(value, type) {
     const formatters = {
-        'string': value => `"${value}"`,
-        'boolean': value => `<span style="color: #10B981">${value}</span>`,
-        'number': value => `<span style="color: #3B82F6">${value}</span>`,
-        'null': () => 'null',
-        'default': value => value
+        'string': value => `<span style="color: ${CONFIG.colors.text.string}">"${value}"</span>`,
+        'boolean': value => `<span style="color: ${CONFIG.colors.text.boolean[value]}">${value}</span>`,
+        'number': value => `<span style="color: ${CONFIG.colors.text.number}">${value}</span>`,
+        'null': () => `<span style="color: ${CONFIG.colors.text.null}">null</span>`,
+        'default': value => `<span style="color: ${CONFIG.colors.text.default}">${value}</span>`
     };
     return (formatters[type] || formatters.default)(value);
 }
@@ -1829,10 +2170,48 @@ function addCustomStyles() {
         `;
         document.head.appendChild(styleTag);
     }
+    if (!document.getElementById('text-color-styles')) {
+        const styleTag = document.createElement('style');
+        styleTag.id = 'text-color-styles';
+        styleTag.textContent = `
+            .node-key {
+                color: ${CONFIG.colors.text.key};
+            }
+            .node-name {
+                color: ${CONFIG.colors.text.groupTitle};
+            }
+            .string-value {
+                color: ${CONFIG.colors.text.string};
+            }
+            .number-value {
+                color: ${CONFIG.colors.text.number};
+            }
+            .boolean-value {
+                color: ${CONFIG.colors.text.boolean};
+            }
+            .default-value {
+                color: ${CONFIG.colors.text.default};
+            }
+        `;
+        document.head.appendChild(styleTag);
+    }
+    if (!document.getElementById('root-node-styles')) {
+        const styleTag = document.createElement('style');
+        styleTag.id = 'root-node-styles';
+        styleTag.textContent = `
+            .root-node {
+                background-color: ${CONFIG.colors.root.background} !important;
+                border-color: ${CONFIG.colors.root.border} !important;
+            }
+            .root-node .node-name,
+            .root-node .node-key,
+            .root-node .node-count {
+                color: white !important;
+            }
+        `;
+        document.head.appendChild(styleTag);
+    }
 }
-/**
- * Update document ready function to initialize styles and ensure file input is properly set up
- */
 document.addEventListener('DOMContentLoaded', function () {
     if (!localStorage.getItem('welcomeShown')) {
         localStorage.setItem('welcomeShown', 'true');
@@ -1862,18 +2241,20 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation();
             element.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
-            if (file && file.type === 'application/json') {
+            const extension = file.name.toLowerCase().split('.').pop();
+            if (file && (extension === 'json' || extension === 'xml')) {
                 const fakeInput = { files: [file] };
-                importJSONFile(fakeInput);
+                importFile(fakeInput);
             } else {
-                showFileFeedback('error', 'Apenas arquivos JSON são suportados.');
+                showFileFeedback('error', 'Apenas arquivos JSON ou XML são suportados.');
             }
         });
     });
     const fileInput = document.getElementById('jsonFileInput');
     if (fileInput) {
+        fileInput.accept = '.json,.xml';
         fileInput.addEventListener('change', function () {
-            importJSONFile(this);
+            importFile(this);
         });
         console.log('File input event listener attached');
     } else {
@@ -1897,6 +2278,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 handleEditorAction(value);
             }
         });
+        const exportGroup = document.createElement('optgroup');
+        exportGroup.label = 'Exportar como';
+        exportGroup.innerHTML = `
+            <option value="export-json">📤 Exportar JSON</option>
+            <option value="export-xml">📤 Exportar XML</option>
+        `;
+        dropdown.appendChild(exportGroup);
     }
 });
 window.toggleNode = toggleNode;
@@ -1928,12 +2316,12 @@ function fixImportFunctionality() {
     const newInput = document.createElement('input');
     newInput.id = 'jsonFileInput';
     newInput.type = 'file';
-    newInput.accept = '.json';
+    newInput.accept = '.json,.xml';  // Modificado para aceitar ambos os formatos
     newInput.style.display = 'none';
     document.body.appendChild(newInput);
     newInput.addEventListener('change', function () {
         console.log('File input change event triggered');
-        importJSONFile(this);
+        importFile(this);  // Alterado para usar importFile ao invés de importJSONFile
     });
     console.log('Fixed file input created and appended to document');
     return newInput;
@@ -2000,3 +2388,132 @@ function toggleGrouping() {
     }
 }
 window.toggleGrouping = toggleGrouping;
+function toggleEditor() {
+    const container = document.querySelector('.container');
+    const leftPanel = document.querySelector('.left-panel');
+    const toggleBtn = document.querySelector('.toggle-editor-button svg');
+    const resizer = document.querySelector('.resizer');
+
+    state.isEditorCollapsed = !state.isEditorCollapsed;
+
+    if (state.isEditorCollapsed) {
+        leftPanel.style.width = '40px';
+        leftPanel.classList.add('collapsed');
+        toggleBtn.style.transform = 'rotate(180deg)';
+        resizer.style.display = 'none';
+    } else {
+        leftPanel.style.width = '400px';
+        leftPanel.classList.remove('collapsed');
+        toggleBtn.style.transform = 'none';
+        resizer.style.display = 'block';
+        if (state.editor) {
+            state.editor.resize();
+        }
+    }
+}
+window.toggleEditor = toggleEditor;
+function detectFormat(text) {
+    text = text.trim();
+    if (text.startsWith('{') || text.startsWith('[')) {
+        return 'json';
+    } else if (text.startsWith('<?xml') || text.startsWith('<')) {
+        return 'xml';
+    }
+    // Tenta detectar pelo conteúdo
+    try {
+        JSON.parse(text);
+        return 'json';
+    } catch {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, "text/xml");
+            if (!doc.querySelector("parsererror")) {
+                return 'xml';
+            }
+        } catch {} 
+    }
+    return 'json'; // default fallback
+}
+
+function setEditorMode(format) {
+    if (!state.editor) return;
+    const mode = SUPPORTED_FORMATS[format]?.editorMode || CONFIG.editor.jsonMode;
+    state.editor.session.setMode(mode);
+}
+
+function formatContent() {
+    const content = state.editor.getValue().trim();
+    if (!content) {
+        showFileFeedback('error', "Editor está vazio");
+        return;
+    }
+
+    const format = detectFormat(content);
+    const formatter = SUPPORTED_FORMATS[format];
+    
+    if (!formatter) {
+        showFileFeedback('error', "Formato não reconhecido");
+        return;
+    }
+
+    if (!formatter.validate(content)) {
+        showFileFeedback('error', `${format.toUpperCase()} inválido`);
+        return;
+    }
+
+    const formatted = formatter.format(content);
+    state.editor.setValue(formatted, -1);
+    setEditorMode(format);
+    showFileFeedback('success', `${format.toUpperCase()} formatado com sucesso`);
+}
+
+// Função auxiliar para converter XML para JSON
+function xmlToJson(xml) {
+    let obj = {};
+
+    if (xml.nodeType === 1) { // element
+        if (xml.attributes.length > 0) {
+            obj["@attributes"] = {};
+            for (let i = 0; i < xml.attributes.length; i++) {
+                const attr = xml.attributes.item(i);
+                obj["@attributes"][attr.nodeName] = attr.nodeValue;
+            }
+        }
+    } else if (xml.nodeType === 3) { // text
+        const text = xml.nodeValue.trim();
+        if (text) return text;
+        return null;
+    }
+
+    if (xml.hasChildNodes()) {
+        for (let i = 0; i < xml.childNodes.length; i++) {
+            const item = xml.childNodes.item(i);
+            const nodeName = item.nodeName;
+            
+            if (nodeName === "#text") {
+                const text = item.nodeValue.trim();
+                if (text) {
+                    if (Object.keys(obj).length === 0) {
+                        return text;
+                    } else {
+                        obj["#text"] = text;
+                    }
+                }
+                continue;
+            }
+
+            const tmp = xmlToJson(item);
+            if (tmp !== null) {
+                if (obj[nodeName] === undefined) {
+                    obj[nodeName] = tmp;
+                } else {
+                    if (!Array.isArray(obj[nodeName])) {
+                        obj[nodeName] = [obj[nodeName]];
+                    }
+                    obj[nodeName].push(tmp);
+                }
+            }
+        }
+    }
+    return obj;
+}

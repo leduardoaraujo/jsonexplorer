@@ -2,6 +2,7 @@ import json
 import random
 import string
 from faker import Faker
+import fastapi as FastAPI
 
 def gerar_nome():
     fake = Faker("pt_BR")

@@ -6,6 +6,8 @@ from fastapi.templating import Jinja2Templates
 import uvicorn
 import re
 
+import json
+
 os.makedirs("templates", exist_ok=True)
 os.makedirs("static/css", exist_ok=True)
 os.makedirs("static/js", exist_ok=True)
@@ -223,14 +225,6 @@ def markdown_to_json(markdown_text):
                 current_list.append(content)
     
     return result
-
-# @app.post("/convert/to-json")
-# async def convert_to_json(markdown_input: dict):
-#     try:
-#         json_output = markdown_to_json(markdown_input["markdown"])
-#         return json_output
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
 
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
