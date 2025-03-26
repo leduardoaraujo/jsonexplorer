@@ -18,7 +18,7 @@ app = FastAPI(
     version="1.0.0",
     contact={
         "name": "Luiz Eduardo Gonçalves de Araujo",
-        "email": "luiz.araujo@gavresorts.com.br",
+        "email": "araujo.luizeduardo@hotmail.com",
     },
     license_info={
         "name": "MIT",
@@ -131,35 +131,6 @@ class MarkdownProcessor:
               }
           })
 async def convert_to_markdown(data: dict):
-    """
-    Converte um objeto JSON em Markdown.
-
-    Este endpoint recebe um objeto JSON no corpo da requisição, converte-o em uma estrutura de Markdown e retorna esse conteúdo em Markdown junto com informações adicionais sobre os 'chunks'.
-    
-    **Exemplo de entrada:**
-    ```json
-    {
-        "title": "Exemplo",
-        "content": "Este é um exemplo de conteúdo."
-    }
-    ```
-
-    **Exemplo de saída:**
-    ```json
-    {
-        "markdown": "# Exemplo\nEste é um exemplo de conteúdo.",
-        "chunks": [
-            {"content": "Exemplo", "path": "root > Exemplo", "metadata": {}}
-        ]
-    }
-    ```
-
-    - O Markdown gerado será estruturado com base nas chaves e valores do JSON.
-    - A resposta incluirá uma lista de "chunks", que são as informações sobre o conteúdo e a estrutura de cada item processado.
-
-    - **Parâmetros de erro**:
-      - **400 (Bad Request)**: Erro ao processar o JSON (por exemplo, estrutura inválida ou problemas internos).
-    """
     try:
         processor = MarkdownProcessor()
         markdown = processor.process_json(data)
@@ -235,17 +206,6 @@ if os.path.exists("templates"):
 else:
     raise Exception("Diretório 'templates' não encontrado!")
 
-# @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-# async def read_index(request: Request):
-#     return templates.TemplateResponse("index.html", {"request": request})
-
-# @app.get("/tojson", response_class=HTMLResponse, include_in_schema=False)
-# async def read_tojson(request: Request):
-#     template_path = os.path.join("templates", "tojson.html")
-#     if not os.path.exists(template_path):
-#         raise HTTPException(status_code=404, detail="Template tojson.html não encontrado")
-#     return templates.TemplateResponse("tojson.html", {"request": request})
-
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_tojson(request: Request):
     template_path = os.path.join("templates", "index.html")
@@ -253,11 +213,15 @@ async def read_tojson(request: Request):
         raise HTTPException(status_code=404, detail="Template index.html não encontrado")
     return templates.TemplateResponse("index.html", {"request": request})
 
-# @app.get("/markdown", response_class=HTMLResponse, include_in_schema=False)
-# async def markdown_viewer(request: Request):
-#     return templates.TemplateResponse("markdownviewer.html", {"request": request})
+@app.get("/editor", response_class=HTMLResponse, include_in_schema=False)
+async def markdown_viewer(request: Request):
+    return templates.TemplateResponse("editor.html", {"request": request})
+
+@app.get("/format", response_class=HTMLResponse, include_in_schema=False)
+async def markdown_viewer(request: Request):
+    return templates.TemplateResponse("format.html", {"request": request})
 
 if __name__ == "__main__":
     print("\n🌎 JSON Explorer")
     print("Estrutura de diretórios criada/verificada")
-    uvicorn.run(app, host="localhost", port=3333)
+    uvicorn.run(app, host="localhost", port=3333)   

@@ -835,9 +835,7 @@ function createNodeContent(d) {
     content.push('</div>');
     return content.join('');
 }
-/**
- * More robust rendering of links to prevent artifacts
- */
+
 function renderLinks(root) {
     state.mainGroup.selectAll(".link").remove();
     state.mainGroup.selectAll(".link")

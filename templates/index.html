@@ -1,139 +1,596 @@
-<!-- 
-       _______ ____  _   _________  __ ____  __    ____  ____  __________ 
-      / / ___// __ \/ | / / ____/ |/ // __ \/ /   / __ \/ __ \/ ____/ __ \
- __  / /\__ \/ / / /  |/ / __/  |   // /_/ / /   / / / / /_/ / __/ / /_/ /
-/ /_/ /___/ / /_/ / /|  / /___ /   |/ ____/ /___/ /_/ / _, _/ /___/ _, _/ 
-\____//____/\____/_/ |_/_____//_/|_/_/   /_____/\____/_/ |_/_____/_/ |_|  
-
--->
-
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor | 🌎JSON Explorer</title>
-    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSONExplorer - Ferramenta Corporativa para JSON e XML</title>
+  <style>
+    :root {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --bg-accent: #edf2f7;
+      --text-primary: #2d3748;
+      --text-secondary: #4a5568;
+      --accent-blue: #2c5282;
+      --accent-hover: #3182ce;
+      --border-color: #e2e8f0;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      --corporate-gradient: linear-gradient(135deg, #2c5282 0%, #4299e1 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background-color: var(--bg-secondary);
+      box-shadow: var(--shadow);
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent-blue);
+      height: 70px;
+    }
+
+    .logo img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+      padding: 0.5rem 0;
+    }
+
+    .nav-link:hover {
+      color: var(--accent-blue);
+      border-bottom: 2px solid var(--accent-blue);
+    }
+
+    main {
+      flex: 1;
+    }
+
+    .hero {
+      background: var(--corporate-gradient);
+      color: white;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+
+    .hero-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin-bottom: 2rem;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.9;
+    }
+
+    .app-modules {
+      max-width: 1200px;
+      margin: -2rem auto 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 0 1.5rem;
+    }
+
+    .module-card {
+      background-color: var(--bg-secondary);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-decoration: none;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .module-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .module-header {
+      padding: 1rem;
+      background-color: var(--bg-accent);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .module-icon {
+      font-size: 1.5rem;
+      color: var(--accent-blue);
+      background-color: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .module-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .module-body {
+      padding: 1.2rem;
+      flex: 1;
+    }
+
+    .module-description {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .module-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      text-align: right;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .module-stats {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .module-button {
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .module-button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .features {
+      padding: 3rem 1rem;
+      background-color: var(--bg-secondary);
+      text-align: center;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .features-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-heading {
+      position: relative;
+      margin-bottom: 3rem;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .section-heading:after {
+      content: '';
+      display: block;
+      width: 80px;
+      height: 3px;
+      background: var(--accent-blue);
+      margin: 0.8rem auto 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background-color: var(--bg-accent);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: left;
+      border: 1px solid var(--border-color);
+      transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--accent-blue);
+    }
+
+    .feature-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      color: var(--text-primary);
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .stats {
+      padding: 3rem 1rem;
+      background-color: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .stats-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 2rem;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .cta {
+      padding: 4rem 1rem;
+      text-align: center;
+      background-color: var(--bg-secondary);
+    }
+
+    .cta-container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .cta h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .cta p {
+      margin-bottom: 2rem;
+      color: var(--text-secondary);
+    }
+
+    .primary-button {
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.8rem 2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 500;
+    }
+
+    .primary-button:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    footer {
+      background-color: var(--bg-accent);
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--accent-blue);
+    }
+
+    .footer-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-logo {
+      height: 30px;
+      width: auto;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    .corporate-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero h1 {
+        font-size: 1.8rem;
+      }
+
+      .app-modules {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-container {
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .footer-info {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="left-panel">
-            <div class="editor-header">
-                <button type="button" class="back-button" title="Voltar ao Portal" onclick="window.location.href='/'">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <div class="editor-controls">
-                    <!-- <button type="button" class="icon-button toggle-editor-button" title="Alternar Editor" onclick="toggleEditor()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10 9l-6 6 6 6"></path>
-                            <path d="M14 15l6-6-6-6"></path>
-                        </svg>
-                    </button> -->
-                    <select class="control-dropdown" onchange="handleEditorAction(this.value)">
-                        <option value="" disabled selected>Escolha uma ação</option>
-                        <option value="import">📁Importar</option>
-                        <option value="" disabled>───────────</option>
-                        <option value="format">✏️Formatar</option>
-                        <option value="clear">❌Limpar Editor</option>
-                        <!-- <option value="export">Exportar JSON</option> -->
-                    </select>
-                    <div class="settings-wrapper">
-                        <button class="icon-button settings-button" onclick="toggleSettings()" title="Configurações">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path
-                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                                </path>
-                            </svg>
-                        </button>
-                        <div id="settings-menu" class="settings-menu">
-                            <div class="settings-item">
-                                <label class="settings-label">
-                                    <input type="checkbox" id="showGrid" checked onchange="toggleGrid()">
-                                    <span class="checkmark"></span>
-                                    Mostrar Grid
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="editor-container">
-                <div id="editor"></div>
-            </div>
-        </div>
-        <div class="resizer"></div>
-        <div class="right-panel">
-            <div class="visualizer-header">
-                <div class="search-container">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar no diagrama..."
-                        autocomplete="off">
-                    <div id="resultCount" class="search-results"></div>
-                </div>
-                <div class="visualizer-controls">
-                    <label class="switch-container" title="Colapsar/Expandir todos os nós">
-                        <input type="checkbox" id="collapseToggle" onchange="handleCollapseToggle(this.checked)">
-                        <span class="switch-slider"></span>
-                        <span class="switch-label">Colapsar</span>
-                    </label>
-                    <div class="zoom-controls">
-                        <button class="icon-button" onclick="zoomIn()" title="Aumentar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="zoomOut()" title="Diminuir">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="resetZoom()" title="Redefinir">
-                            <svg width="15" height="15" viewBox="0 0 92 92" fill="none" stroke="white" stroke-width="10"
-                                stroke-linecap="round" stroke-linejoin="round" stroke-opacity="1">
-                                <path
-                                    d="M26.8889 3V17.3333C26.8889 19.8676 25.8821 22.2981 24.0901 24.0901C22.2981 25.8821 19.8676 26.8889 17.3333 26.8889H3M89 26.8889H74.6667C72.1324 26.8889 69.7019 25.8821 67.9099 24.0901C66.1179 22.2981 65.1111 19.8676 65.1111 17.3333V3M65.1111 89V74.6667C65.1111 72.1324 66.1179 69.7019 67.9099 67.9099C69.7019 66.1179 72.1324 65.1111 74.6667 65.1111H89M3 65.1111H17.3333C19.8676 65.1111 22.2981 66.1179 24.0901 67.9099C25.8821 69.7019 26.8889 72.1324 26.8889 74.6667V89">
-                                </path>
-                            </svg>
-                        </button>
-                        <button class="icon-button" onclick="fitContent()" title="Ajustar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
-                            </svg>
-                        </button>
-                        <span id="zoomLevel">100%</span>
-                        <div class="divider"></div>
-                    </div>
-                    <!-- <button class="action-button" onclick="saveDiagram()" title="Salvar como SVG">
-                        Salvar SVG
-                    </button> -->
-                </div>
-            </div>
-            <div id="visualizer"></div>
-            <div id="loading-indicator" class="loading-indicator hidden">
-                <div class="spinner"></div>
-                <span>Carregando nós...</span>
-            </div>
-        </div>
+  <header>
+    <div class="navbar">
+      <div class="logo">
+        <img src="/static/JSONEXPLORER.svg" alt="" srcset="">
+      </div>
+      <div class="nav-links">
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/ferramentas" class="nav-link">Ferramentas</a>
+        <a href="/documentacao" class="nav-link">Documentação</a>
+        <a href="/suporte" class="nav-link">Suporte</a>
+      </div>
     </div>
-    <div id="welcome-modal" class="modal">
-        <div class="modal-content">
-            <h2>Bem-vindo ao JSON Explorer!</h2>
-            <p>Uma ferramenta simples para explorar e manipular arquivos JSON.</p>
-            <button onclick="closeWelcomePopup()">Fechar</button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Ferramenta corporativa para gerenciamento e visualização de dados JSON e XML</h1>
+        <p>Aumente a produtividade da sua equipe com uma interface intuitiva para análise de estruturas de dados</p>
+      </div>
+    </section>
+
+    <div class="app-modules">
+      <a href="/editor" class="module-card">
+        <div class="module-header">
+          <div class="module-icon">📊</div>
+          <div class="module-title">Editor de Diagramas</div>
         </div>
+        <div class="module-body">
+          <p class="module-description">Transforme dados JSON e XML em diagramas visuais para melhor compreensão da
+            estrutura e hierarquia.</p>
+        </div>
+        <div class="module-footer">
+          <!-- <span class="module-stats">Usado por 132 equipes</span> -->
+          <button class="module-button">Acessar</button>
+        </div>
+      </a>
+
+      <a href="/format" class="module-card">
+        <div class="module-header">
+          <div class="module-icon">🔍</div>
+          <div class="module-title">Formatador</div>
+        </div>
+        <div class="module-body">
+          <p class="module-description">Organize e formate seus arquivos JSON e XML com um clique, tornando-os mais
+            legíveis para toda a equipe.</p>
+        </div>
+        <div class="module-footer">
+          <!-- <span class="module-stats">+3.400 arquivos processados</span> -->
+          <button class="module-button">Acessar</button>
+        </div>
+      </a>
+
+      <!-- <a href="/validator" class="module-card">
+        <div class="module-header">
+          <div class="module-icon">✓</div>
+          <div class="module-title">Validador</div>
+        </div>
+        <div class="module-body">
+          <p class="module-description">Valide a integridade dos seus arquivos e verifique a conformidade com esquemas
+            predefinidos.</p>
+        </div>
+        <div class="module-footer">
+          <span class="module-stats">Novo</span>
+          <button class="module-button">Acessar</button>
+        </div>
+      </a> -->
     </div>
-    <script src="/static/js/script.js"></script>
+
+    <section class="features">
+      <div class="features-container">
+        <h2 class="section-heading">Recursos Empresariais</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>Compatibilidade Total</h3>
+            <p>Suporte completo a JSON e XML, incluindo formatos específ
+            <p>Suporte completo a JSON e XML, incluindo formatos específicos da empresa e padrões de API internos.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">👁️</div>
+            <h3>Visualização Avançada</h3>
+            <p>Diagramas interativos que facilitam a compreensão de estruturas complexas e relações entre dados.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Alto Desempenho</h3>
+            <p>Processamento otimizado para documentos corporativos extensos, sem comprometer a velocidade.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Segurança Corporativa</h3>
+            <p>Conformidade com políticas de segurança da empresa e processamento local para dados sensíveis.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>Integração Interna</h3>
+            <p>Conexão com sistemas internos e APIs da empresa para fluxos de trabalho contínuos.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Relatórios Personalizados</h3>
+            <p>Geração de relatórios e documentação automatizada para estruturas de dados complexas.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stats-container">
+        <div class="stat-item">
+          <div class="stat-number">98%</div>
+          <div class="stat-label">Satisfação das equipes</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">15+</div>
+          <div class="stat-label">Departamentos atendidos</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">42%</div>
+          <div class="stat-label">Aumento na produtividade</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">8.500+</div>
+          <div class="stat-label">Arquivos processados por mês</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="cta-container">
+        <h2>Acesse agora e otimize seu trabalho com dados estruturados</h2>
+        <p>Disponível para todos os colaboradores da empresa. Faça login com suas credenciais corporativas.</p>
+        <a href="/login" class="primary-button">Acessar JSONExplorer</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="/sobre" class="footer-link">Sobre</a>
+        <a href="/ajuda" class="footer-link">Ajuda</a>
+        <a href="/contato" class="footer-link">Contato</a>
+        <a href="/termos" class="footer-link">Termos de Uso</a>
+      </div>
+      <div class="footer-info">
+        <!-- <div class="corporate-info">
+          <span>JSONExplorer</span> •
+          <span>Versão 2.5.0</span>
+        </div> -->
+        <div class="corporate-info">
+          <span><img class="footer-logo" src="/static/dataAnalytics.svg" alt="Logo JSONExplorer"></span> •
+          <span><img class="footer-logo" src="/static/JSONEXPLORER.svg" alt="Logo JSONExplorer"></span>
+        </div>
+      </div>
+    </div>
+    </div>
+  </footer>
 </body>
+
 </html>
